@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tokenomicon</title>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4IiB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsbGVkYnk9InQgZCI+CiAgPHRpdGxlIGlkPSJ0Ij5Ub2tlbm9taWNvbjwvdGl0bGU+CiAgPGRlc2MgaWQ9ImQiPkFuIG9wZW4gc3BlbGxib29rIHN1bW1vbmluZyBhbiBhbGwtc2VlaW5nIGdvbGQgY29pbiB0aGF0IHdhdGNoZXMgeW91ciB0b2tlbiBzcGVuZC48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzJiMWY1NSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxMjBjMjYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmZDU0YSIgc3RvcC1vcGFjaXR5PSIwLjU1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmZDU0YSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJjb2luIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmZTI3YSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmNGE3MWQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImNvdmVyIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzliNmJmZiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM2YTNmZTAiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJlYW0iIHgxPSIwIiB5MT0iMSIgeDI9IjAiIHkyPSIwIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmZkNTRhIiBzdG9wLW9wYWNpdHk9IjAuMzIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmZkNTRhIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgoKICA8cmVjdCB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgcng9IjI4IiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIHN1bW1vbmluZyBiZWFtICsgZ2xvdyAtLT4KICA8cGF0aCBkPSJNNDQgODAgTDU0IDQ2IEw3NCA0NiBMODQgODAgWiIgZmlsbD0idXJsKCNiZWFtKSIvPgogIDxjaXJjbGUgY3g9IjY0IiBjeT0iNDQiIHI9IjM2IiBmaWxsPSJ1cmwoI2dsb3cpIi8+CgogIDwhLS0gdGhlIGJvb2sgLS0+CiAgPHBhdGggZD0iTTEyIDgyIFEzOCA3MyA2NCA4NCBROTAgNzMgMTE2IDgyIEwxMTYgMTEwIFE5MCAxMDEgNjQgMTEyIFEzOCAxMDEgMTIgMTEwIFoiIGZpbGw9InVybCgjY292ZXIpIi8+CiAgPHBhdGggZD0iTTE4IDc3IFE0MiA2OCA2NCA3OSBMNjQgMTA1IFE0MiA5NSAxOCAxMDMgWiIgZmlsbD0iI2ZiZjFkYyIvPgogIDxwYXRoIGQ9Ik0xMTAgNzcgUTg2IDY4IDY0IDc5IEw2NCAxMDUgUTg2IDk1IDExMCAxMDMgWiIgZmlsbD0iI2YxZTNjNCIvPgogIDxwYXRoIGQ9Ik02NCA3OSBMNjQgMTA2IiBzdHJva2U9IiNjOWI0OGEiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNjOWI0OGEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxwYXRoIGQ9Ik0yNiA4MiBRNDAgNzYgNTYgODMiLz4KICAgIDxwYXRoIGQ9Ik0yNiA4OCBRNDAgODIgNTYgODkiLz4KICAgIDxwYXRoIGQ9Ik0yNiA5NCBRMzYgODkgNDYgOTMiLz4KICAgIDxwYXRoIGQ9Ik03MiA4MyBRODggNzYgMTAyIDgyIi8+CiAgICA8cGF0aCBkPSJNNzIgODkgUTg4IDgyIDEwMiA4OCIvPgogICAgPHBhdGggZD0iTTgyIDkzIFE5MiA4OSAxMDIgOTQiLz4KICA8L2c+CgogIDwhLS0gdGhlIGFsbC1zZWVpbmcgY29pbiAtLT4KICA8Y2lyY2xlIGN4PSI2NCIgY3k9IjQ0IiByPSIyMiIgZmlsbD0iI2Q5OGEwYiIvPgogIDxjaXJjbGUgY3g9IjY0IiBjeT0iNDIuNSIgcj0iMjEiIGZpbGw9InVybCgjY29pbikiLz4KICA8Y2lyY2xlIGN4PSI2NCIgY3k9IjQyLjUiIHI9IjE2LjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Q5OGEwYiIgc3Ryb2tlLXdpZHRoPSIxLjYiIHN0cm9rZS1kYXNoYXJyYXk9IjIuMiAyLjYiLz4KICA8cGF0aCBkPSJNNTAgNDIuNSBRNjQgMzAgNzggNDIuNSBRNjQgNTUgNTAgNDIuNSBaIiBmaWxsPSIjZmZmYWYwIiBzdHJva2U9IiM5YTViMDAiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPGNpcmNsZSBjeD0iNjUuNSIgY3k9IjQyLjUiIHI9IjUuNCIgZmlsbD0iIzJiMWY1NSIvPgogIDxjaXJjbGUgY3g9IjY3LjQiIGN5PSI0MC42IiByPSIxLjciIGZpbGw9IiNmZmZmZmYiLz4KICA8cGF0aCBkPSJNNDkuNSAzNCBRNTMgMjYgNjEgMjQuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC43IiBzdHJva2Utd2lkdGg9IjIuNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CgogIDwhLS0gc3BhcmtsZXMgLS0+CiAgPHBhdGggZD0iTTI3IDIyIFEyNyAzMCAzNSAzMCBRMjcgMzAgMjcgMzggUTI3IDMwIDE5IDMwIFEyNyAzMCAyNyAyMiBaIiBmaWxsPSIjNWVlYWQ0Ii8+CiAgPHBhdGggZD0iTTEwMyAxOCBRMTAzIDI0IDEwOSAyNCBRMTAzIDI0IDEwMyAzMCBRMTAzIDI0IDk3IDI0IFExMDMgMjQgMTAzIDE4IFoiIGZpbGw9IiNmNDcyYjYiLz4KICA8cGF0aCBkPSJNMTAwIDUyIFExMDAgNTYgMTA0IDU2IFExMDAgNTYgMTAwIDYwIFExMDAgNTYgOTYgNTYgUTEwMCA1NiAxMDAgNTIgWiIgZmlsbD0iI2ZmZDU0YSIvPgogIDxjaXJjbGUgY3g9IjM2IiBjeT0iNTgiIHI9IjIiIGZpbGw9IiNmZmQ1NGEiIG9wYWNpdHk9IjAuOCIvPgogIDxjaXJjbGUgY3g9IjkwIiBjeT0iNjgiIHI9IjEuNiIgZmlsbD0iIzVlZWFkNCIgb3BhY2l0eT0iMC44Ii8+Cjwvc3ZnPg==">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f6f4fb;
+  --card: #ffffff;
+  --card-2: #f1eef9;
+  --line: #e4dff2;
+  --grid: #ece8f6;
+  --text: #1d1438;
+  --text-2: #5b5378;
+  --text-3: #8a83a6;
+  --accent: #6a3fe0;
+  --accent-soft: #ece5ff;
+  --gold: #b97400;
+  --bar: #7c5cf0;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s-other: #a29cb8;
+  --shadow: 0 1px 2px rgba(29,20,56,.06), 0 4px 16px rgba(29,20,56,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0f0b1f; --card: #191330; --card-2: #211a3d; --line: #2e2650; --grid: #261f45;
+    --text: #f3efff; --text-2: #b9b0dc; --text-3: #8a81b0;
+    --accent: #a98bff; --accent-soft: #2a2152; --gold: #ffc83d; --bar: #9b7bff;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s-other: #6f688f;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f0b1f; --card: #191330; --card-2: #211a3d; --line: #2e2650; --grid: #261f45;
+  --text: #f3efff; --text-2: #b9b0dc; --text-3: #8a81b0;
+  --accent: #a98bff; --accent-soft: #2a2152; --gold: #ffc83d; --bar: #9b7bff;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s-other: #6f688f;
+  --shadow: none;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 14px/1.45 ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.num { font-variant-numeric: tabular-nums; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 20px 16px 48px; }
+header.top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.brand { display: flex; align-items: center; gap: 12px; margin-right: auto; min-width: 0; }
+.brand svg { width: 48px; height: 48px; flex: none; }
+.brand h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -.5px; }
+.brand h1 b { color: var(--gold); font-weight: 800; }
+.brand p { margin: 0; color: var(--text-2); font-size: 13px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn {
+  appearance: none; border: 1px solid var(--line); background: var(--card); color: var(--text);
+  padding: 7px 12px; border-radius: 10px; font: inherit; font-weight: 600; cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+:root[data-theme="dark"] .btn.primary { color: #140d2b; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #140d2b; } }
+.source { font-size: 12px; color: var(--text-3); }
+
+.filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+.seg { display: inline-flex; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+.seg button { appearance: none; border: 0; background: transparent; color: var(--text-2); font: inherit; font-weight: 600; padding: 5px 11px; border-radius: 7px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: var(--text); }
+select, input[type="search"] {
+  font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--line);
+  border-radius: 10px; padding: 6px 10px; max-width: 100%;
+}
+
+.quip { background: var(--card-2); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; margin-bottom: 16px; color: var(--text-2); }
+.quip strong { color: var(--text); }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.kpi { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow); min-width: 0; }
+.kpi .label { color: var(--text-2); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.kpi .value { font-size: 26px; font-weight: 800; letter-spacing: -.5px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi .sub { color: var(--text-3); font-size: 12px; }
+.kpi.hero .value { color: var(--gold); }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+@media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; box-shadow: var(--shadow); min-width: 0; margin-bottom: 16px; }
+.grid2 .card { margin-bottom: 0; }
+.card h2 { margin: 0 0 2px; font-size: 15px; font-weight: 700; }
+.card .hint { margin: 0 0 12px; color: var(--text-3); font-size: 12px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 8px; font-size: 12px; color: var(--text-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+#daily svg { display: block; width: 100%; height: 260px; overflow: visible; }
+#daily .axis text { fill: var(--text-3); font-size: 11px; }
+#daily .gridline { stroke: var(--grid); stroke-width: 1; }
+#daily .hit { fill: transparent; cursor: default; }
+#daily .hit:hover, #daily .hit:focus { fill: var(--text); fill-opacity: .05; outline: none; }
+
+.hbars { display: grid; gap: 8px; }
+.hrow { display: grid; grid-template-columns: minmax(80px, 34%) 1fr auto; align-items: center; gap: 10px; font-size: 13px; }
+.hrow .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.hrow .track { height: 14px; background: var(--card-2); border-radius: 4px; overflow: hidden; }
+.hrow .fill { height: 100%; border-radius: 0 4px 4px 0; background: var(--bar); min-width: 2px; }
+.hrow .val { color: var(--text-2); text-align: right; min-width: 64px; }
+.hrow:hover .fill { filter: brightness(1.12); }
+
+.mix { display: grid; gap: 10px; }
+.mixrow { display: grid; grid-template-columns: 150px 1fr 90px 90px; gap: 12px; align-items: center; font-size: 13px; }
+.mixrow .k { color: var(--text); font-weight: 600; }
+.mixrow .k small { display: block; color: var(--text-3); font-weight: 400; }
+.mixrow .r { text-align: right; color: var(--text-2); }
+.mixhead { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); }
+@media (max-width: 640px) { .mixrow { grid-template-columns: 1fr 70px 70px; } .mixrow .track { display: none; } }
+
+.tablebar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.tablebar input { flex: 1 1 220px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 8px 10px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--line); }
+th { position: sticky; top: 0; background: var(--card-2); color: var(--text-2); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; cursor: pointer; user-select: none; }
+th.r, td.r { text-align: right; }
+th[aria-sort="ascending"]::after { content: " \2191"; }
+th[aria-sort="descending"]::after { content: " \2193"; }
+tbody tr:hover { background: var(--card-2); }
+td.prompt { max-width: 340px; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); }
+td.cost { font-weight: 700; }
+.pill { display: inline-flex; align-items: center; gap: 6px; }
+.pill i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.more { margin-top: 10px; }
+
+#tip {
+  position: fixed; pointer-events: none; z-index: 10; background: var(--card); color: var(--text);
+  border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18); min-width: 150px; display: none;
+}
+#tip .t { color: var(--text-2); margin-bottom: 4px; font-weight: 600; }
+#tip .row { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+#tip .row b { font-weight: 700; }
+#tip .row span { display: inline-flex; align-items: center; gap: 6px; color: var(--text-2); }
+#tip .row span i { width: 10px; height: 2px; display: inline-block; }
+
+.empty { text-align: center; padding: 48px 16px; }
+.empty img { width: 120px; height: 120px; }
+.empty h2 { font-size: 26px; margin: 14px 0 4px; }
+.empty p { color: var(--text-2); max-width: 560px; margin: 0 auto 18px; }
+.drop { border: 2px dashed var(--line); border-radius: 18px; padding: 28px 16px; max-width: 640px; margin: 0 auto; background: var(--card); }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+code { background: var(--card-2); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: 12.5px; }
+.steps { text-align: left; max-width: 520px; margin: 14px auto 0; color: var(--text-2); font-size: 13px; }
+.steps li { margin: 4px 0; }
+details { color: var(--text-2); font-size: 13px; }
+details table { margin-top: 8px; }
+footer { color: var(--text-3); font-size: 12px; margin-top: 8px; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" aria-hidden="true">
+  
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b1f55"/>
+      <stop offset="1" stop-color="#120c26"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffd54a" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ffd54a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="coin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffe27a"/>
+      <stop offset="1" stop-color="#f4a71d"/>
+    </linearGradient>
+    <linearGradient id="cover" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9b6bff"/>
+      <stop offset="1" stop-color="#6a3fe0"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#ffd54a" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#ffd54a" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+
+  <!-- summoning beam + glow -->
+  <path d="M44 80 L54 46 L74 46 L84 80 Z" fill="url(#beam)"/>
+  <circle cx="64" cy="44" r="36" fill="url(#glow)"/>
+
+  <!-- the book -->
+  <path d="M12 82 Q38 73 64 84 Q90 73 116 82 L116 110 Q90 101 64 112 Q38 101 12 110 Z" fill="url(#cover)"/>
+  <path d="M18 77 Q42 68 64 79 L64 105 Q42 95 18 103 Z" fill="#fbf1dc"/>
+  <path d="M110 77 Q86 68 64 79 L64 105 Q86 95 110 103 Z" fill="#f1e3c4"/>
+  <path d="M64 79 L64 106" stroke="#c9b48a" stroke-width="1.6" stroke-linecap="round"/>
+  <g fill="none" stroke="#c9b48a" stroke-width="2" stroke-linecap="round">
+    <path d="M26 82 Q40 76 56 83"/>
+    <path d="M26 88 Q40 82 56 89"/>
+    <path d="M26 94 Q36 89 46 93"/>
+    <path d="M72 83 Q88 76 102 82"/>
+    <path d="M72 89 Q88 82 102 88"/>
+    <path d="M82 93 Q92 89 102 94"/>
+  </g>
+
+  <!-- the all-seeing coin -->
+  <circle cx="64" cy="44" r="22" fill="#d98a0b"/>
+  <circle cx="64" cy="42.5" r="21" fill="url(#coin)"/>
+  <circle cx="64" cy="42.5" r="16.5" fill="none" stroke="#d98a0b" stroke-width="1.6" stroke-dasharray="2.2 2.6"/>
+  <path d="M50 42.5 Q64 30 78 42.5 Q64 55 50 42.5 Z" fill="#fffaf0" stroke="#9a5b00" stroke-width="1.8" stroke-linejoin="round"/>
+  <circle cx="65.5" cy="42.5" r="5.4" fill="#2b1f55"/>
+  <circle cx="67.4" cy="40.6" r="1.7" fill="#ffffff"/>
+  <path d="M49.5 34 Q53 26 61 24.5" fill="none" stroke="#ffffff" stroke-opacity="0.7" stroke-width="2.4" stroke-linecap="round"/>
+
+  <!-- sparkles -->
+  <path d="M27 22 Q27 30 35 30 Q27 30 27 38 Q27 30 19 30 Q27 30 27 22 Z" fill="#5eead4"/>
+  <path d="M103 18 Q103 24 109 24 Q103 24 103 30 Q103 24 97 24 Q103 24 103 18 Z" fill="#f472b6"/>
+  <path d="M100 52 Q100 56 104 56 Q100 56 100 60 Q100 56 96 56 Q100 56 100 52 Z" fill="#ffd54a"/>
+  <circle cx="36" cy="58" r="2" fill="#ffd54a" opacity="0.8"/>
+  <circle cx="90" cy="68" r="1.6" fill="#5eead4" opacity="0.8"/>
+</svg>
+      <div>
+        <h1>Token<b>o</b>micon</h1>
+        <p>Every token you summoned. And what it cost you.</p>
+      </div>
+    </div>
+    <div class="actions">
+      <span class="source" id="source"></span>
+      <button class="btn" id="btnFolder" type="button">Load folder</button>
+      <button class="btn" id="btnDemo" type="button">Demo data</button>
+      <button class="btn" id="btnTheme" type="button" aria-label="Toggle theme">Theme</button>
+      <input type="file" id="folderInput" webkitdirectory directory multiple hidden>
+      <input type="file" id="filesInput" accept=".jsonl,.json" multiple hidden>
+    </div>
+  </header>
+
+  <section id="empty" class="empty" hidden>
+    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4IiB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsbGVkYnk9InQgZCI+CiAgPHRpdGxlIGlkPSJ0Ij5Ub2tlbm9taWNvbjwvdGl0bGU+CiAgPGRlc2MgaWQ9ImQiPkFuIG9wZW4gc3BlbGxib29rIHN1bW1vbmluZyBhbiBhbGwtc2VlaW5nIGdvbGQgY29pbiB0aGF0IHdhdGNoZXMgeW91ciB0b2tlbiBzcGVuZC48L2Rlc2M+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzJiMWY1NSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMxMjBjMjYiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9Imdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmZDU0YSIgc3RvcC1vcGFjaXR5PSIwLjU1Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2ZmZDU0YSIgc3RvcC1vcGFjaXR5PSIwIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJjb2luIiB4MT0iMCIgeTE9IjAiIHgyPSIxIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmZTI3YSIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmNGE3MWQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImNvdmVyIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzliNmJmZiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM2YTNmZTAiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJlYW0iIHgxPSIwIiB5MT0iMSIgeDI9IjAiIHkyPSIwIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmZkNTRhIiBzdG9wLW9wYWNpdHk9IjAuMzIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmZkNTRhIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgoKICA8cmVjdCB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCIgcng9IjI4IiBmaWxsPSJ1cmwoI2JnKSIvPgoKICA8IS0tIHN1bW1vbmluZyBiZWFtICsgZ2xvdyAtLT4KICA8cGF0aCBkPSJNNDQgODAgTDU0IDQ2IEw3NCA0NiBMODQgODAgWiIgZmlsbD0idXJsKCNiZWFtKSIvPgogIDxjaXJjbGUgY3g9IjY0IiBjeT0iNDQiIHI9IjM2IiBmaWxsPSJ1cmwoI2dsb3cpIi8+CgogIDwhLS0gdGhlIGJvb2sgLS0+CiAgPHBhdGggZD0iTTEyIDgyIFEzOCA3MyA2NCA4NCBROTAgNzMgMTE2IDgyIEwxMTYgMTEwIFE5MCAxMDEgNjQgMTEyIFEzOCAxMDEgMTIgMTEwIFoiIGZpbGw9InVybCgjY292ZXIpIi8+CiAgPHBhdGggZD0iTTE4IDc3IFE0MiA2OCA2NCA3OSBMNjQgMTA1IFE0MiA5NSAxOCAxMDMgWiIgZmlsbD0iI2ZiZjFkYyIvPgogIDxwYXRoIGQ9Ik0xMTAgNzcgUTg2IDY4IDY0IDc5IEw2NCAxMDUgUTg2IDk1IDExMCAxMDMgWiIgZmlsbD0iI2YxZTNjNCIvPgogIDxwYXRoIGQ9Ik02NCA3OSBMNjQgMTA2IiBzdHJva2U9IiNjOWI0OGEiIHN0cm9rZS13aWR0aD0iMS42IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8ZyBmaWxsPSJub25lIiBzdHJva2U9IiNjOWI0OGEiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj4KICAgIDxwYXRoIGQ9Ik0yNiA4MiBRNDAgNzYgNTYgODMiLz4KICAgIDxwYXRoIGQ9Ik0yNiA4OCBRNDAgODIgNTYgODkiLz4KICAgIDxwYXRoIGQ9Ik0yNiA5NCBRMzYgODkgNDYgOTMiLz4KICAgIDxwYXRoIGQ9Ik03MiA4MyBRODggNzYgMTAyIDgyIi8+CiAgICA8cGF0aCBkPSJNNzIgODkgUTg4IDgyIDEwMiA4OCIvPgogICAgPHBhdGggZD0iTTgyIDkzIFE5MiA4OSAxMDIgOTQiLz4KICA8L2c+CgogIDwhLS0gdGhlIGFsbC1zZWVpbmcgY29pbiAtLT4KICA8Y2lyY2xlIGN4PSI2NCIgY3k9IjQ0IiByPSIyMiIgZmlsbD0iI2Q5OGEwYiIvPgogIDxjaXJjbGUgY3g9IjY0IiBjeT0iNDIuNSIgcj0iMjEiIGZpbGw9InVybCgjY29pbikiLz4KICA8Y2lyY2xlIGN4PSI2NCIgY3k9IjQyLjUiIHI9IjE2LjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2Q5OGEwYiIgc3Ryb2tlLXdpZHRoPSIxLjYiIHN0cm9rZS1kYXNoYXJyYXk9IjIuMiAyLjYiLz4KICA8cGF0aCBkPSJNNTAgNDIuNSBRNjQgMzAgNzggNDIuNSBRNjQgNTUgNTAgNDIuNSBaIiBmaWxsPSIjZmZmYWYwIiBzdHJva2U9IiM5YTViMDAiIHN0cm9rZS13aWR0aD0iMS44IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPGNpcmNsZSBjeD0iNjUuNSIgY3k9IjQyLjUiIHI9IjUuNCIgZmlsbD0iIzJiMWY1NSIvPgogIDxjaXJjbGUgY3g9IjY3LjQiIGN5PSI0MC42IiByPSIxLjciIGZpbGw9IiNmZmZmZmYiLz4KICA8cGF0aCBkPSJNNDkuNSAzNCBRNTMgMjYgNjEgMjQuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC43IiBzdHJva2Utd2lkdGg9IjIuNCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CgogIDwhLS0gc3BhcmtsZXMgLS0+CiAgPHBhdGggZD0iTTI3IDIyIFEyNyAzMCAzNSAzMCBRMjcgMzAgMjcgMzggUTI3IDMwIDE5IDMwIFEyNyAzMCAyNyAyMiBaIiBmaWxsPSIjNWVlYWQ0Ii8+CiAgPHBhdGggZD0iTTEwMyAxOCBRMTAzIDI0IDEwOSAyNCBRMTAzIDI0IDEwMyAzMCBRMTAzIDI0IDk3IDI0IFExMDMgMjQgMTAzIDE4IFoiIGZpbGw9IiNmNDcyYjYiLz4KICA8cGF0aCBkPSJNMTAwIDUyIFExMDAgNTYgMTA0IDU2IFExMDAgNTYgMTAwIDYwIFExMDAgNTYgOTYgNTYgUTEwMCA1NiAxMDAgNTIgWiIgZmlsbD0iI2ZmZDU0YSIvPgogIDxjaXJjbGUgY3g9IjM2IiBjeT0iNTgiIHI9IjIiIGZpbGw9IiNmZmQ1NGEiIG9wYWNpdHk9IjAuOCIvPgogIDxjaXJjbGUgY3g9IjkwIiBjeT0iNjgiIHI9IjEuNiIgZmlsbD0iIzVlZWFkNCIgb3BhY2l0eT0iMC44Ii8+Cjwvc3ZnPg==" alt="">
+    <h2>Summon your sessions</h2>
+    <p>Tokenomicon reads the transcripts Claude Code already keeps on your machine and tells you exactly how many tokens you burned, what it cost, and how long you spent arguing with it. Nothing leaves your browser.</p>
+    <div class="drop" id="drop">
+      <strong>Drop your <code>~/.claude/projects</code> folder (or some .jsonl files) here</strong>
+      <ol class="steps">
+        <li>Fastest: run <code>python3 tokenomicon.py</code>. It scans your logs and opens a report with everything baked in.</li>
+        <li>Or hit <b>Load folder</b> and pick <code>~/.claude/projects</code>. On a Mac, press <code>Cmd+Shift+.</code> in the picker to see hidden folders.</li>
+        <li>Or just poke around with <b>Demo data</b> first. Zero judgment.</li>
+      </ol>
+      <p style="margin:16px 0 0"><button class="btn primary" id="btnFolder2" type="button">Load folder</button> <button class="btn" id="btnFiles" type="button">Pick .jsonl files</button> <button class="btn" id="btnDemo2" type="button">Demo data</button></p>
+    </div>
+  </section>
+
+  <main id="dash" hidden>
+    <div class="filters" role="toolbar" aria-label="Filters">
+      <div class="seg" id="range">
+        <button type="button" data-days="7">7d</button>
+        <button type="button" data-days="30" aria-pressed="true">30d</button>
+        <button type="button" data-days="90">90d</button>
+        <button type="button" data-days="0">All</button>
+      </div>
+      <select id="fProject" aria-label="Project"></select>
+      <select id="fModel" aria-label="Model"></select>
+    </div>
+
+    <div class="quip" id="quip"></div>
+    <div class="kpis" id="kpis"></div>
+
+    <div class="card">
+      <h2 id="dailyTitle">Cost per day</h2>
+      <p class="hint">Stacked by model. Hover a bar for the receipts.</p>
+      <div class="legend" id="dailyLegend"></div>
+      <div id="daily"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>Cost by model</h2>
+        <p class="hint">Who's eating your budget.</p>
+        <div class="hbars" id="byModel"></div>
+      </div>
+      <div class="card">
+        <h2>Cost by project</h2>
+        <p class="hint">Top 8 money pits.</p>
+        <div class="hbars" id="byProject"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Where the tokens went</h2>
+      <p class="hint">Cache reads are the cheap seats. Output tokens are the expensive ones.</p>
+      <div class="mix" id="mix"></div>
+    </div>
+
+    <div class="card">
+      <h2>Sessions</h2>
+      <p class="hint">Duration is wall clock. Active time ignores gaps over 5 minutes, because lunch is not Claude's fault.</p>
+      <div class="tablebar">
+        <input type="search" id="q" placeholder="Search prompts, projects, models" aria-label="Search sessions">
+        <span class="source" id="count"></span>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr id="thead"></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <button class="btn more" id="moreBtn" type="button" hidden>Show more</button>
+    </div>
+
+    <details class="card">
+      <summary><b>Pricing used</b> (USD per million tokens, list API rates)</summary>
+      <p>Estimates at Anthropic API list prices. Cache writes cost 1.25x input (5 min TTL) or 2x (1 hour TTL), and fast mode doubles everything. If you're on a Pro or Max plan, this is what it <em>would</em> have cost, which is either a flex or a warning. Edit <code>PRICING</code> at the top of the script to change rates.</p>
+      <div class="tablewrap"><table id="pricing"></table></div>
+      <p id="unknownModels"></p>
+    </details>
+    <footer>Tokenomicon runs entirely in your browser. Your transcripts never go anywhere.</footer>
+  </main>
+</div>
+<div id="tip" role="status" aria-live="polite"></div>
+
+<script>
+/* Embedded data from tokenomicon.py, if any. */
+window.TOKENOMICON_DATA = /*__TOKENOMICON_DATA__*/null;
+</script>
+<script>
+"use strict";
+
+/* ---------- pricing (USD per 1M tokens) ---------- */
+// key: substring matched against the model id (longest match wins)
+// cr: cache read rate; when omitted it's 0.1x input
+const PRICING = [
+  { key: "fable-5-2",  name: "Fable 5.2",  in: 8,    out: 40,   cr: 0.20 },
+  { key: "mythos-5-2", name: "Mythos 5.2", in: 8,    out: 40,   cr: 0.20 },
+  { key: "fable-5-1",  name: "Fable 5.1",  in: 10,   out: 50,   cr: 0.25 },
+  { key: "mythos-5-1", name: "Mythos 5.1", in: 10,   out: 50,   cr: 0.25 },
+  { key: "fable-5",    name: "Fable 5",    in: 10,   out: 50,   cr: 1.00 },
+  { key: "mythos-5",   name: "Mythos 5",   in: 10,   out: 50,   cr: 1.00 },
+  { key: "opus-5-5",   name: "Opus 5.5",   in: 4,    out: 20,   cr: 0.20 },
+  { key: "opus-5",     name: "Opus 5",     in: 5,    out: 25 },
+  { key: "opus-4-8",   name: "Opus 4.8",   in: 5,    out: 25 },
+  { key: "opus-4-7",   name: "Opus 4.7",   in: 5,    out: 25 },
+  { key: "opus-4-6",   name: "Opus 4.6",   in: 5,    out: 25 },
+  { key: "opus-4-5",   name: "Opus 4.5",   in: 5,    out: 25 },
+  { key: "opus-4-1",   name: "Opus 4.1",   in: 15,   out: 75 },
+  { key: "opus-4",     name: "Opus 4",     in: 15,   out: 75 },
+  { key: "sonnet-5-5", name: "Sonnet 5.5", in: 2,    out: 10,   cr: 0.10 },
+  { key: "sonnet-5",   name: "Sonnet 5",   in: 2,    out: 10 },
+  { key: "sonnet-4-6", name: "Sonnet 4.6", in: 3,    out: 15 },
+  { key: "sonnet-4-5", name: "Sonnet 4.5", in: 3,    out: 15 },
+  { key: "sonnet-4",   name: "Sonnet 4",   in: 3,    out: 15 },
+  { key: "3-7-sonnet", name: "Sonnet 3.7", in: 3,    out: 15 },
+  { key: "haiku-5-5",  name: "Haiku 5.5",  in: 0.10, out: 0.50 },
+  { key: "haiku-4-5",  name: "Haiku 4.5",  in: 1,    out: 5 },
+  { key: "3-5-haiku",  name: "Haiku 3.5",  in: 0.80, out: 4 },
+];
+const FALLBACK_PRICE = PRICING.find(p => p.key === "opus-5-5");
+const FAST_MULTIPLIER = 2;
+const IDLE_GAP_MS = 5 * 60 * 1000;
+
+const priceCache = new Map();
+function priceFor(model) {
+  if (priceCache.has(model)) return priceCache.get(model);
+  const m = String(model || "").toLowerCase();
+  let best = null;
+  for (const p of PRICING) if (m.includes(p.key) && (!best || p.key.length > best.key.length)) best = p;
+  const res = best ? { ...best, known: true } : { ...FALLBACK_PRICE, name: model || "unknown", known: false };
+  if (res.cr == null) res.cr = res.in * 0.1;
+  priceCache.set(model, res);
+  return res;
+}
+
+/* ---------- formatting ---------- */
+const nf0 = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
+function fmtUSD(v) {
+  if (v === 0) return "$0.00";
+  if (v < 0.01) return "<$0.01";
+  if (v >= 10000) return "$" + nf0.format(v);
+  return "$" + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtTok(v) {
+  if (v >= 1e9) return (v / 1e9).toFixed(2) + "B";
+  if (v >= 1e6) return (v / 1e6).toFixed(v >= 1e8 ? 0 : 1) + "M";
+  if (v >= 1e3) return (v / 1e3).toFixed(v >= 1e5 ? 0 : 1) + "K";
+  return String(Math.round(v));
+}
+function fmtDur(ms) {
+  const s = Math.round(ms / 1000);
+  if (s < 60) return s + "s";
+  const m = Math.floor(s / 60), h = Math.floor(m / 60), d = Math.floor(h / 24);
+  if (d > 0) return d + "d " + (h % 24) + "h";
+  if (h > 0) return h + "h " + (m % 60) + "m";
+  return m + "m " + (s % 60) + "s";
+}
+function fmtDate(t) { return new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
+function fmtDateTime(t) { return new Date(t).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); }
+function dayKey(t) { const d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function startOfDay(t) { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
+function el(tag, props, ...kids) {
+  const n = document.createElement(tag);
+  if (props) for (const [k, v] of Object.entries(props)) {
+    if (k === "class") n.className = v; else if (k === "style") n.style.cssText = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+  }
+  for (const k of kids) if (k != null) n.append(k);
+  return n;
+}
+
+/* ---------- parsing ---------- */
+function textOf(content) {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    if (content.some(b => b && b.type === "tool_result")) return null;
+    const t = content.filter(b => b && b.type === "text").map(b => b.text).join(" ");
+    return t || null;
+  }
+  return null;
+}
+function isRealPrompt(t) {
+  if (!t) return false;
+  const s = t.trim();
+  if (!s) return false;
+  if (s.startsWith("<") || s.startsWith("Caveat:") || s.startsWith("[Request interrupted")) return false;
+  return true;
+}
+
+// Turns raw transcript objects into session summaries.
+function buildSessions(objs, fileHints) {
+  const calls = new Map();    // message id -> call
+  const sess = new Map();     // sessionId -> session
+  const getS = (id, hint) => {
+    let s = sess.get(id);
+    if (!s) { s = { id, cwd: null, hint, times: [], prompt: null, promptTs: Infinity }; sess.set(id, s); }
+    return s;
+  };
+  for (let i = 0; i < objs.length; i++) {
+    const o = objs[i];
+    if (!o || typeof o !== "object" || !o.sessionId) continue;
+    const ts = Date.parse(o.timestamp);
+    if (!Number.isFinite(ts)) continue;
+    const s = getS(o.sessionId, fileHints ? fileHints[i] : null);
+    s.times.push(ts);
+    if (!s.cwd && o.cwd) s.cwd = o.cwd;
+    if (o.type === "user" && !o.isSidechain && o.message) {
+      const t = textOf(o.message.content);
+      if (isRealPrompt(t) && ts < s.promptTs) { s.prompt = t.trim().replace(/\s+/g, " ").slice(0, 200); s.promptTs = ts; }
+    }
+    if (o.type === "assistant" && o.message && o.message.usage) {
+      const model = o.message.model;
+      if (!model || model === "<synthetic>") continue;
+      const id = o.message.id || o.requestId || o.uuid;
+      const u = o.message.usage;
+      const prev = calls.get(id);
+      if (prev && (prev.u.output_tokens || 0) >= (u.output_tokens || 0)) continue;
+      calls.set(id, { sid: o.sessionId, ts, model, u, side: !!o.isSidechain });
+    }
+  }
+  for (const c of calls.values()) {
+    const s = sess.get(c.sid);
+    const p = priceFor(c.model);
+    const u = c.u;
+    const inp = u.input_tokens || 0, out = u.output_tokens || 0, cr = u.cache_read_input_tokens || 0;
+    let cw5 = u.cache_creation_input_tokens || 0, cw1 = 0;
+    if (u.cache_creation) {
+      cw1 = u.cache_creation.ephemeral_1h_input_tokens || 0;
+      cw5 = u.cache_creation.ephemeral_5m_input_tokens || 0;
+      const total = u.cache_creation_input_tokens || 0;
+      if (cw1 + cw5 < total) cw5 += total - cw1 - cw5;
+    }
+    const mult = (u.speed === "fast") ? FAST_MULTIPLIER : 1;
+    const cost = {
+      inp: inp * p.in / 1e6 * mult,
+      cw: (cw5 * p.in * 1.25 + cw1 * p.in * 2) / 1e6 * mult,
+      cr: cr * p.cr / 1e6 * mult,
+      out: out * p.out / 1e6 * mult,
+    };
+    s.calls = s.calls || [];
+    s.calls.push({ ts: c.ts, model: p.name, known: p.known, rawModel: c.model, inp, cw: cw5 + cw1, cr, out, cost, crSavings: cr * (p.in - p.cr) / 1e6 * mult });
+  }
+  const out = [];
+  for (const s of sess.values()) {
+    if (!s.calls || !s.calls.length) continue;
+    s.times.sort((a, b) => a - b);
+    let active = 0;
+    for (let i = 1; i < s.times.length; i++) { const g = s.times[i] - s.times[i - 1]; if (g <= IDLE_GAP_MS) active += g; }
+    const tok = { inp: 0, cw: 0, cr: 0, out: 0 }, cost = { inp: 0, cw: 0, cr: 0, out: 0 };
+    const byModel = {};
+    let saved = 0;
+    for (const c of s.calls) {
+      for (const k of ["inp", "cw", "cr", "out"]) { tok[k] += c[k]; cost[k] += c.cost[k]; }
+      const total = c.cost.inp + c.cost.cw + c.cost.cr + c.cost.out;
+      byModel[c.model] = (byModel[c.model] || 0) + total;
+      saved += c.crSavings;
+    }
+    const total = cost.inp + cost.cw + cost.cr + cost.out;
+    const primary = Object.entries(byModel).sort((a, b) => b[1] - a[1])[0][0];
+    const cwd = s.cwd || "";
+    const project = cwd ? cwd.replace(/[\\/]+$/, "").split(/[\\/]/).pop() : (s.hint || "unknown");
+    out.push({
+      id: s.id, project, cwd, prompt: s.prompt || "(no prompt text)", start: s.times[0], end: s.times[s.times.length - 1],
+      wall: s.times[s.times.length - 1] - s.times[0], active, tok, cost, total, byModel, primary, calls: s.calls.length,
+      unknown: s.calls.filter(c => !c.known).map(c => c.rawModel), saved,
+    });
+  }
+  out.sort((a, b) => b.start - a.start);
+  return out;
+}
+
+function parseJSONL(text, hint, objs, hints) {
+  let bad = 0;
+  for (const line of text.split("\n")) {
+    if (!line.trim()) continue;
+    try { objs.push(JSON.parse(line)); hints.push(hint); } catch { bad++; }
+  }
+  return bad;
+}
+
+/* ---------- demo data (same shape as real transcripts) ---------- */
+function makeDemo() {
+  let seed = 1337;
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  const pick = a => a[Math.floor(rnd() * a.length)];
+  const wpick = ws => { let r = rnd() * ws.reduce((a, w) => a + w[1], 0); for (const w of ws) { if ((r -= w[1]) <= 0) return w[0]; } return ws[0][0]; };
+  const projects = ["payments-api", "landing-page", "ml-pipeline", "mobile-app", "infra-terraform", "side-project-9000", "dotfiles"];
+  const prompts = [
+    "fix the flaky auth test, it's been failing since Tuesday",
+    "why is the build red again",
+    "refactor the webhook handler so it stops timing out",
+    "write a migration that adds soft deletes to users",
+    "explain this regex like I'm five",
+    "make the signup button less ugly",
+    "add pagination to the orders endpoint",
+    "find out why prod memory keeps climbing",
+    "convert this class component to hooks",
+    "write tests for the invoice calculator",
+    "set up GitHub Actions for lint and test",
+    "port the cron job to a queue worker",
+    "rename everything called 'data2' to something a human would choose",
+    "draft the README for the CLI",
+    "investigate the 3am pager alert",
+  ];
+  const models = [["claude-opus-5-5", 55], ["claude-sonnet-5-5", 28], ["claude-haiku-5-5", 9], ["claude-fable-5-2", 8]];
+  const now = Date.now();
+  const objs = [];
+  let n = 0;
+  for (let i = 0; i < 160; i++) {
+    const daysAgo = Math.floor(Math.pow(rnd(), 1.4) * 80);
+    const d = new Date(now - daysAgo * 864e5);
+    d.setHours(8 + Math.floor(rnd() * 13), Math.floor(rnd() * 60), 0, 0);
+    let t = Math.min(d.getTime(), now - 3600e3);
+    const sid = "demo-" + i.toString(36) + "-" + Math.floor(rnd() * 1e9).toString(36);
+    const project = pick(projects);
+    const cwd = "/Users/you/code/" + project;
+    const model = wpick(models);
+    const turns = 3 + Math.floor(rnd() * rnd() * 70);
+    let ctx = 18000 + Math.floor(rnd() * 12000);
+    objs.push({ type: "user", sessionId: sid, timestamp: new Date(t).toISOString(), cwd, message: { role: "user", content: pick(prompts) } });
+    for (let k = 0; k < turns; k++) {
+      t += 4000 + rnd() * 70000;
+      if (rnd() < 0.05) t += 20 * 60e3 + rnd() * 60 * 60e3; // wandered off
+      const out = Math.floor(150 + rnd() * rnd() * 5000);
+      const write = Math.floor(500 + rnd() * 6000);
+      const usage = {
+        input_tokens: Math.floor(1 + rnd() * 30), output_tokens: out,
+        cache_read_input_tokens: ctx, cache_creation_input_tokens: write,
+        cache_creation: rnd() < 0.7 ? { ephemeral_1h_input_tokens: write, ephemeral_5m_input_tokens: 0 } : { ephemeral_1h_input_tokens: 0, ephemeral_5m_input_tokens: write },
+        speed: rnd() < 0.03 ? "fast" : "standard",
+      };
+      ctx += write + Math.floor(out * 0.6);
+      const id = "msg_demo_" + (n++);
+      const line = { type: "assistant", sessionId: sid, timestamp: new Date(t).toISOString(), cwd, isSidechain: rnd() < 0.12, message: { id, model, role: "assistant", usage } };
+      objs.push(line);
+      if (rnd() < 0.3) objs.push(line); // same message, multiple content blocks: must not double count
+      if (rnd() < 0.6) { t += 2000 + rnd() * 30000; objs.push({ type: "user", sessionId: sid, timestamp: new Date(t).toISOString(), cwd, message: { role: "user", content: [{ type: "tool_result", content: "ok" }] } }); }
+    }
+  }
+  return objs;
+}
+
+/* ---------- state ---------- */
+const state = { sessions: [], days: 30, project: "", model: "", sortKey: "start", sortDir: -1, q: "", limit: 25, modelColor: new Map(), sourceLabel: "" };
+const SLOT_VARS = ["--s1", "--s2", "--s3", "--s4"];
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function colorFor(model) { return css(state.modelColor.get(model) || "--s-other"); }
+
+function load(sessions, label) {
+  state.sessions = sessions;
+  state.sourceLabel = label;
+  // fixed colors by all-time cost rank, so filters never repaint a model
+  const tot = {};
+  for (const s of sessions) for (const [m, v] of Object.entries(s.byModel)) tot[m] = (tot[m] || 0) + v;
+  state.modelColor = new Map(Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([m], i) => [m, SLOT_VARS[i]]));
+  state.allModels = Object.entries(tot).sort((a, b) => b[1] - a[1]).map(([m]) => m);
+  const projects = [...new Set(sessions.map(s => s.project))].sort((a, b) => a.localeCompare(b));
+  const fp = document.getElementById("fProject"); fp.replaceChildren(el("option", { value: "" }, "All projects"), ...projects.map(p => el("option", { value: p }, p)));
+  const fm = document.getElementById("fModel"); fm.replaceChildren(el("option", { value: "" }, "All models"), ...state.allModels.map(m => el("option", { value: m }, m)));
+  state.project = ""; state.model = "";
+  document.getElementById("empty").hidden = sessions.length > 0;
+  document.getElementById("dash").hidden = sessions.length === 0;
+  document.getElementById("source").textContent = label;
+  render();
+}
+
+function filtered() {
+  const cutoff = state.days ? startOfDay(Date.now()) - (state.days - 1) * 864e5 : -Infinity;
+  return state.sessions.filter(s => s.start >= cutoff && (!state.project || s.project === state.project) && (!state.model || s.byModel[state.model] != null));
+}
+
+/* ---------- render ---------- */
+function render() {
+  const rows = filtered();
+  renderKpis(rows);
+  renderDaily(rows);
+  renderHBars("byModel", aggregate(rows, s => Object.entries(s.byModel)), m => colorFor(m));
+  renderHBars("byProject", aggregate(rows, s => [[s.project, s.total]]).slice(0, 8));
+  renderMix(rows);
+  renderTable(rows);
+  renderPricing();
+}
+
+function aggregate(rows, fn) {
+  const m = new Map();
+  for (const s of rows) for (const [k, v] of fn(s)) m.set(k, (m.get(k) || 0) + v);
+  return [...m.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+function quipFor(total, n) {
+  if (n === 0) return "Nothing in this range. Either you took a vacation or you're cheating on Claude with someone else.";
+  if (total < 1) return "<strong>Cheap date.</strong> That wouldn't even buy a decent gumball.";
+  if (total < 10) return "<strong>Coffee money.</strong> Nobody's getting fired over this.";
+  if (total < 50) return "<strong>A nice dinner you didn't eat.</strong> Worth it though. Probably.";
+  if (total < 200) return "<strong>The tokens are starting to have opinions about your wallet.</strong>";
+  if (total < 1000) return "<strong>Holy shit.</strong> You're basically Claude's landlord now.";
+  return "<strong>At this point Anthropic should send you a fruit basket.</strong> A big one.";
+}
+
+function renderKpis(rows) {
+  const sum = (f) => rows.reduce((a, s) => a + f(s), 0);
+  const total = sum(s => s.total);
+  const tin = sum(s => s.tok.inp + s.tok.cw + s.tok.cr), tout = sum(s => s.tok.out);
+  const wall = sum(s => s.wall), active = sum(s => s.active), saved = sum(s => s.saved);
+  const calls = sum(s => s.calls);
+  const days = new Set(rows.map(s => dayKey(s.start))).size;
+  const range = state.days ? "last " + state.days + " days" : "all time";
+  document.getElementById("quip").innerHTML = quipFor(total, rows.length);
+  const tiles = [
+    ["Total damage", fmtUSD(total), range + (days ? " · " + fmtUSD(total / days) + " per active day" : ""), true],
+    ["Sessions", nf0.format(rows.length), nf0.format(calls) + " API calls · " + fmtUSD(rows.length ? total / rows.length : 0) + " avg"],
+    ["Input tokens", fmtTok(tin), fmtTok(sum(s => s.tok.cr)) + " were cache reads"],
+    ["Output tokens", fmtTok(tout), fmtTok(rows.length ? tout / rows.length : 0) + " per session"],
+    ["Time with Claude", fmtDur(active), fmtDur(wall) + " wall clock"],
+    ["Cache saved you", fmtUSD(saved), "vs paying full price for every reread"],
+  ];
+  document.getElementById("kpis").replaceChildren(...tiles.map(([l, v, sub, hero]) =>
+    el("div", { class: "kpi" + (hero ? " hero" : "") }, el("div", { class: "label" }, l), el("div", { class: "value num", title: v }, v), el("div", { class: "sub num" }, sub))));
+}
+
+function legendItems(models) {
+  return models.map(m => el("span", null, el("i", { style: "background:" + colorFor(m) }), m));
+}
+
+function niceMax(v) {
+  if (v <= 0) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+}
+
+function renderDaily(rows) {
+  const host = document.getElementById("daily");
+  const end = startOfDay(Date.now());
+  let start = state.days ? end - (state.days - 1) * 864e5 : (rows.length ? startOfDay(Math.min(...rows.map(s => s.start))) : end);
+  let nDays = Math.round((end - start) / 864e5) + 1;
+  const weekly = nDays > 120;
+  const step = weekly ? 7 : 1;
+  const nB = Math.ceil(nDays / step);
+  document.getElementById("dailyTitle").textContent = weekly ? "Cost per week" : "Cost per day";
+  const series = [...state.modelColor.keys()];
+  const keys = [...series, "Other"];
+  const buckets = Array.from({ length: nB }, (_, i) => ({ t: start + i * step * 864e5, v: Object.fromEntries(keys.map(k => [k, 0])), total: 0 }));
+  const usedModels = new Set();
+  for (const s of rows) {
+    const idx = Math.floor((startOfDay(s.start) - start) / 864e5 / step);
+    if (idx < 0 || idx >= nB) continue;
+    for (const [m, v] of Object.entries(s.byModel)) {
+      if (state.model && m !== state.model) continue;
+      const k = state.modelColor.has(m) ? m : "Other";
+      buckets[idx].v[k] += v; buckets[idx].total += v; usedModels.add(k);
+    }
+  }
+  const shown = keys.filter(k => usedModels.has(k));
+  const leg = document.getElementById("dailyLegend");
+  leg.replaceChildren(...shown.map(k => el("span", null, el("i", { style: "background:" + (k === "Other" ? css("--s-other") : colorFor(k)) }), k)));
+  leg.hidden = shown.length < 2;
+
+  const W = Math.max(320, host.clientWidth || 800), H = 260, padL = 52, padR = 8, padT = 10, padB = 26;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  const max = niceMax(Math.max(...buckets.map(b => b.total), 0));
+  const bw = iw / nB, gap = Math.min(4, bw * 0.25), barW = Math.max(1, bw - gap);
+  const y = v => padT + ih - (v / max) * ih;
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", "Cost per " + (weekly ? "week" : "day") + " stacked by model");
+  const mk = (tag, attrs, parent) => { const n = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); (parent || svg).appendChild(n); return n; };
+  const ax = mk("g", { class: "axis" });
+  for (let i = 0; i <= 4; i++) {
+    const v = max * i / 4, yy = y(v);
+    mk("line", { class: "gridline", x1: padL, x2: W - padR, y1: yy, y2: yy }, ax);
+    const t = mk("text", { x: padL - 8, y: yy + 4, "text-anchor": "end" }, ax); t.textContent = fmtUSD(v).replace(".00", "");
+  }
+  const labelEvery = Math.ceil(nB / Math.max(2, Math.floor(iw / 64)));
+  buckets.forEach((b, i) => {
+    if (i % labelEvery === 0) { const t = mk("text", { x: padL + i * bw + bw / 2, y: H - 6, "text-anchor": "middle" }, ax); t.textContent = fmtDate(b.t); }
+  });
+  const bars = mk("g", {});
+  const r = Math.min(4, barW / 2);
+  buckets.forEach((b, i) => {
+    const x = padL + i * bw + gap / 2;
+    let acc = 0;
+    const segs = shown.filter(k => b.v[k] > 0);
+    segs.forEach((k, j) => {
+      const y0 = y(acc), y1 = y(acc + b.v[k]); acc += b.v[k];
+      const top = j === segs.length - 1;
+      // 2px surface gap above every segment except the top one
+      const yy = top ? y1 : y1 + 2, hh = Math.max(0.5, y0 - yy);
+      const fill = k === "Other" ? css("--s-other") : colorFor(k);
+      if (top && hh > r) {
+        mk("path", { d: `M${x},${yy + hh} V${yy + r} Q${x},${yy} ${x + r},${yy} H${x + barW - r} Q${x + barW},${yy} ${x + barW},${yy + r} V${yy + hh} Z`, fill }, bars);
+      } else {
+        mk("rect", { x, y: yy, width: barW, height: hh, fill }, bars);
+      }
+    });
+  });
+  const tip = document.getElementById("tip");
+  buckets.forEach((b, i) => {
+    const hit = mk("rect", { class: "hit", x: padL + i * bw, y: padT, width: bw, height: ih, tabindex: b.total > 0 ? 0 : -1 });
+    const show = (ev) => {
+      const label = weekly ? "Week of " + fmtDate(b.t) : new Date(b.t).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+      tip.replaceChildren(el("div", { class: "t" }, label), el("div", { class: "row" }, el("span", null, "Total"), el("b", { class: "num" }, fmtUSD(b.total))),
+        ...shown.filter(k => b.v[k] > 0).map(k => el("div", { class: "row" }, el("span", null, el("i", { style: "background:" + (k === "Other" ? css("--s-other") : colorFor(k)) }), k), el("b", { class: "num" }, fmtUSD(b.v[k])))));
+      tip.style.display = "block";
+      const rect = ev.target.getBoundingClientRect();
+      const px = ev.clientX != null && ev.type !== "focus" ? ev.clientX : rect.left + rect.width / 2;
+      const py = ev.clientY != null && ev.type !== "focus" ? ev.clientY : rect.top + 20;
+      const tw = tip.offsetWidth, th = tip.offsetHeight;
+      tip.style.left = Math.min(window.innerWidth - tw - 8, Math.max(8, px + 14)) + "px";
+      tip.style.top = Math.max(8, py - th - 10) + "px";
+    };
+    hit.addEventListener("pointermove", show); hit.addEventListener("focus", show);
+    hit.addEventListener("pointerleave", () => tip.style.display = "none"); hit.addEventListener("blur", () => tip.style.display = "none");
+  });
+  host.replaceChildren(svg);
+}
+
+function renderHBars(id, entries, colorFn) {
+  const host = document.getElementById(id);
+  if (!entries.length) { host.replaceChildren(el("div", { class: "source" }, "Nothing to show.")); return; }
+  const max = entries[0][1] || 1, total = entries.reduce((a, e) => a + e[1], 0) || 1;
+  host.replaceChildren(...entries.map(([k, v]) => {
+    const pct = Math.round(v / total * 100);
+    return el("div", { class: "hrow", title: `${k}: ${fmtUSD(v)} (${pct}% of spend)` },
+      el("div", { class: "name" }, colorFn ? el("span", { class: "pill" }, el("i", { style: "background:" + colorFn(k) }), k) : k),
+      el("div", { class: "track" }, el("div", { class: "fill", style: `width:${(v / max * 100).toFixed(2)}%` + (colorFn ? ";background:" + colorFn(k) : "") })),
+      el("div", { class: "val num" }, fmtUSD(v) + " · " + pct + "%"));
+  }));
+}
+
+function renderMix(rows) {
+  const tok = { inp: 0, cw: 0, cr: 0, out: 0 }, cost = { inp: 0, cw: 0, cr: 0, out: 0 };
+  for (const s of rows) for (const k in tok) { tok[k] += s.tok[k]; cost[k] += s.cost[k]; }
+  const tTok = Object.values(tok).reduce((a, b) => a + b, 0) || 1, tCost = Object.values(cost).reduce((a, b) => a + b, 0) || 1;
+  const defs = [
+    ["inp", "Fresh input", "uncached prompt tokens"],
+    ["cw", "Cache writes", "stashing context for later"],
+    ["cr", "Cache reads", "rereading the stash, cheaply"],
+    ["out", "Output", "everything Claude wrote back"],
+  ];
+  const head = el("div", { class: "mixrow mixhead" }, el("div", null, "Type"), el("div", { class: "track-h" }, "Share of tokens"), el("div", { class: "r" }, "Tokens"), el("div", { class: "r" }, "Cost"));
+  document.getElementById("mix").replaceChildren(head, ...defs.map(([k, label, sub]) => el("div", { class: "mixrow", title: `${label}: ${Math.round(tok[k] / tTok * 100)}% of tokens, ${Math.round(cost[k] / tCost * 100)}% of cost` },
+    el("div", { class: "k" }, label, el("small", null, sub)),
+    el("div", { class: "track", style: "height:14px;background:var(--card-2);border-radius:4px;overflow:hidden" }, el("div", { class: "fill", style: `height:100%;background:var(--bar);border-radius:0 4px 4px 0;width:${(tok[k] / tTok * 100).toFixed(2)}%;min-width:2px` })),
+    el("div", { class: "r num" }, fmtTok(tok[k]), el("small", { style: "display:block;color:var(--text-3)" }, Math.round(tok[k] / tTok * 100) + "%")),
+    el("div", { class: "r num" }, fmtUSD(cost[k]), el("small", { style: "display:block;color:var(--text-3)" }, Math.round(cost[k] / tCost * 100) + "%")))));
+}
+
+const COLS = [
+  { k: "start", label: "Started", get: s => s.start, fmt: s => fmtDateTime(s.start) },
+  { k: "project", label: "Project", get: s => s.project, fmt: s => s.project },
+  { k: "prompt", label: "First prompt", get: s => s.prompt, fmt: s => s.prompt, cls: "prompt" },
+  { k: "primary", label: "Model", get: s => s.primary, fmt: s => el("span", { class: "pill" }, el("i", { style: "background:" + colorFor(s.primary) }), s.primary + (Object.keys(s.byModel).length > 1 ? " +" + (Object.keys(s.byModel).length - 1) : "")) },
+  { k: "active", label: "Active", get: s => s.active, fmt: s => fmtDur(s.active), r: true },
+  { k: "wall", label: "Wall", get: s => s.wall, fmt: s => fmtDur(s.wall), r: true },
+  { k: "in", label: "In", get: s => s.tok.inp + s.tok.cw + s.tok.cr, fmt: s => fmtTok(s.tok.inp + s.tok.cw + s.tok.cr), r: true },
+  { k: "out", label: "Out", get: s => s.tok.out, fmt: s => fmtTok(s.tok.out), r: true },
+  { k: "total", label: "Cost", get: s => s.total, fmt: s => fmtUSD(s.total), r: true, cls: "cost" },
+];
+
+function renderTable(rows) {
+  const q = state.q.toLowerCase();
+  let list = q ? rows.filter(s => (s.prompt + " " + s.project + " " + Object.keys(s.byModel).join(" ") + " " + s.id).toLowerCase().includes(q)) : rows.slice();
+  const col = COLS.find(c => c.k === state.sortKey);
+  list.sort((a, b) => { const x = col.get(a), y = col.get(b); return (typeof x === "string" ? x.localeCompare(y) : x - y) * state.sortDir; });
+  document.getElementById("thead").replaceChildren(...COLS.map(c => {
+    const th = el("th", { class: c.r ? "r" : "", scope: "col", tabindex: 0 }, c.label);
+    if (c.k === state.sortKey) th.setAttribute("aria-sort", state.sortDir > 0 ? "ascending" : "descending");
+    const go = () => { if (state.sortKey === c.k) state.sortDir *= -1; else { state.sortKey = c.k; state.sortDir = (c.r || c.k === "start") ? -1 : 1; } renderTable(filtered()); };
+    th.addEventListener("click", go); th.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+    return th;
+  }));
+  document.getElementById("tbody").replaceChildren(...list.slice(0, state.limit).map(s => el("tr", null, ...COLS.map(c => {
+    const v = c.fmt(s);
+    return el("td", { class: [c.r ? "r num" : "", c.cls || ""].join(" ").trim(), title: c.k === "prompt" ? s.prompt : (c.k === "project" ? s.cwd : "") }, v);
+  }))));
+  document.getElementById("count").textContent = nf0.format(list.length) + " session" + (list.length === 1 ? "" : "s");
+  const more = document.getElementById("moreBtn");
+  more.hidden = list.length <= state.limit;
+  more.textContent = "Show " + Math.min(25, list.length - state.limit) + " more";
+}
+
+function renderPricing() {
+  const used = new Set(state.sessions.flatMap(s => Object.keys(s.byModel)));
+  const tb = document.getElementById("pricing");
+  tb.replaceChildren(el("thead", null, el("tr", null, el("th", null, "Model"), el("th", { class: "r" }, "Input"), el("th", { class: "r" }, "Output"), el("th", { class: "r" }, "Cache read"), el("th", { class: "r" }, "Cache write 5m / 1h"))),
+    el("tbody", null, ...PRICING.filter(p => used.has(p.name)).map(p => { const cr = p.cr != null ? p.cr : p.in * 0.1; return el("tr", null, el("td", null, p.name), el("td", { class: "r num" }, "$" + p.in), el("td", { class: "r num" }, "$" + p.out), el("td", { class: "r num" }, "$" + +cr.toFixed(3)), el("td", { class: "r num" }, "$" + +(p.in * 1.25).toFixed(3) + " / $" + p.in * 2)); })));
+  const unk = [...new Set(state.sessions.flatMap(s => s.unknown))];
+  document.getElementById("unknownModels").textContent = unk.length ? "Unrecognized models (priced as Opus 5.5, so take those numbers with salt): " + unk.join(", ") : "";
+}
+
+/* ---------- loading ---------- */
+async function loadFiles(files) {
+  const objs = [], hints = [];
+  let nFiles = 0, bad = 0;
+  const jsonl = [...files].filter(f => /\.jsonl$/i.test(f.name));
+  if (!jsonl.length) { alert("No .jsonl files in there. Point me at ~/.claude/projects (or a folder inside it)."); return; }
+  document.getElementById("source").textContent = "Reading " + jsonl.length + " files...";
+  for (const f of jsonl) {
+    const rel = f.webkitRelativePath || f._rel || f.name;
+    const parts = rel.split("/");
+    const hint = parts.length > 1 ? parts[parts.length - 2].replace(/^-+/, "") : null;
+    bad += parseJSONL(await f.text(), hint, objs, hints);
+    nFiles++;
+  }
+  const sessions = buildSessions(objs, hints);
+  load(sessions, nFiles + (nFiles === 1 ? " file, " : " files, ") + sessions.length + " sessions" + (bad ? ", " + bad + " junk lines skipped" : ""));
+  if (!sessions.length) alert("Read the files but found no Claude usage in them. Are these Claude Code transcripts?");
+}
+
+async function walkEntry(entry, out, path) {
+  if (entry.isFile) {
+    await new Promise(res => entry.file(f => { f._rel = path + f.name; out.push(f); res(); }, res));
+  } else if (entry.isDirectory) {
+    const reader = entry.createReader();
+    let batch;
+    do {
+      batch = await new Promise(res => reader.readEntries(res, () => res([])));
+      for (const e of batch) await walkEntry(e, out, path + entry.name + "/");
+    } while (batch.length);
+  }
+}
+
+function setupDrop() {
+  const zone = document.body, drop = document.getElementById("drop");
+  zone.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+  zone.addEventListener("dragleave", e => { if (e.target === zone || e.target === drop) drop.classList.remove("over"); });
+  zone.addEventListener("drop", async e => {
+    e.preventDefault(); drop.classList.remove("over");
+    const items = [...(e.dataTransfer.items || [])].map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+    const files = [];
+    if (items.length) { for (const it of items) await walkEntry(it, files, ""); }
+    else files.push(...e.dataTransfer.files);
+    loadFiles(files);
+  });
+}
+
+function loadDemo() { load(buildSessions(makeDemo()), "Demo data (fake, but spiritually accurate)"); }
+
+/* ---------- wiring ---------- */
+function setTheme(t) {
+  if (t) document.documentElement.setAttribute("data-theme", t); else document.documentElement.removeAttribute("data-theme");
+  try { t ? localStorage.setItem("tokenomicon-theme", t) : localStorage.removeItem("tokenomicon-theme"); } catch {}
+  if (state.sessions.length) render();
+}
+(function init() {
+  try { const t = localStorage.getItem("tokenomicon-theme"); if (t) document.documentElement.setAttribute("data-theme", t); } catch {}
+  const pickFolder = () => document.getElementById("folderInput").click();
+  document.getElementById("btnFolder").onclick = pickFolder;
+  document.getElementById("btnFolder2").onclick = pickFolder;
+  document.getElementById("btnFiles").onclick = () => document.getElementById("filesInput").click();
+  document.getElementById("folderInput").onchange = e => loadFiles(e.target.files);
+  document.getElementById("filesInput").onchange = e => loadFiles(e.target.files);
+  document.getElementById("btnDemo").onclick = loadDemo;
+  document.getElementById("btnDemo2").onclick = loadDemo;
+  document.getElementById("btnTheme").onclick = () => {
+    const cur = document.documentElement.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    setTheme(cur === "dark" ? "light" : "dark");
+  };
+  document.querySelectorAll("#range button").forEach(b => b.onclick = () => {
+    document.querySelectorAll("#range button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    state.days = +b.dataset.days; state.limit = 25; render();
+  });
+  document.getElementById("fProject").onchange = e => { state.project = e.target.value; state.limit = 25; render(); };
+  document.getElementById("fModel").onchange = e => { state.model = e.target.value; state.limit = 25; render(); };
+  document.getElementById("q").oninput = e => { state.q = e.target.value; state.limit = 25; renderTable(filtered()); };
+  document.getElementById("moreBtn").onclick = () => { state.limit += 25; renderTable(filtered()); };
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => state.sessions.length && renderDaily(filtered()), 150); });
+  setupDrop();
+  const embedded = window.TOKENOMICON_DATA;
+  if (embedded && embedded.records) {
+    const sessions = buildSessions(embedded.records, embedded.hints);
+    load(sessions, "Scanned " + (embedded.files || "?") + (embedded.files === 1 ? " file" : " files") + " on " + new Date(embedded.generatedAt).toLocaleString());
+  } else if (/[?&]demo\b/.test(location.search)) {
+    loadDemo();
+  } else {
+    document.getElementById("empty").hidden = false;
+  }
+})();
+</script>
+</body>
+</html>

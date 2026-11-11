@@ -1,0 +1,5 @@
+# Generated reports contain your own session data. Keep them out of git.
+tokenomicon-report.html
+*.report.html
+__pycache__/
+.DS_Store
