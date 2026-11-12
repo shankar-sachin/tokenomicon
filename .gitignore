@@ -3,3 +3,4 @@ tokenomicon-report.html
 *.report.html
 __pycache__/
 .DS_Store
+tokenomicon-cloud*.json
