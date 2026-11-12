@@ -21,7 +21,28 @@ Don't want to run a script? Open `tokenomicon.html` and hit **Load folder** (pic
 
 Want it on your phone too? `python3 tokenomicon.py --serve --host 0.0.0.0` makes it reachable from other devices on your Wi-Fi. Heads up: that means anyone on the same network can see your spend and your prompts.
 
-Flags: `--dir PATH` (scan somewhere else, repeatable), `--out FILE`, `--no-open`, `--serve`, `--port N` (default 8787), `--host ADDR` (default 127.0.0.1).
+Flags: `--dir PATH` (scan somewhere else, repeatable), `--cloud FILE` (cloud export to include, repeatable), `--out FILE`, `--no-open`, `--serve`, `--port N` (default 8787), `--host ADDR` (default 127.0.0.1).
+
+### Cloud sessions
+
+Sessions you start from the Claude desktop app, claude.ai/code, your phone or a project thread run in Anthropic's cloud, so their transcripts never land in `~/.claude/projects` and the scanner can't see them. Claude does keep running totals for each one (fresh input, cache writes, cache reads, output and the dollar figure), and you can bring those in with a cloud export:
+
+- Ask any Claude Code session that has the session tools to write a `tokenomicon-cloud.json` (format below), or grab one a previous session made.
+- Drop it next to `tokenomicon.py` and it's picked up on every scan or refresh, or drag it onto the page.
+
+Cloud sessions show up with a "cloud" tag. They only have totals, so there's no per-call breakdown and no active time, and the cost is Claude's own number, split across token types using list prices.
+
+```json
+{"tokenomicon": "cloud-sessions", "version": 1, "sessions": [
+  {"id": "session_...", "title": "Model comparison index and scoring", "project": "eval-forge",
+   "repos": ["eval-forge/claude-battle"], "origin": "desktop", "model": "claude-fable-5-2",
+   "start": "2026-11-10T01:47:34Z", "end": "2026-11-11T21:24:21Z",
+   "usage": {"input_tokens": 2635, "output_tokens": 42460, "cache_read_tokens": 9899299,
+             "cache_write_tokens": 258186, "cost_usd": 7.83}}
+]}
+```
+
+Regular claude.ai chats aren't included: nothing Anthropic exposes for them carries token counts, so there's nothing honest to bill.
 
 ![Tokenomicon with demo data](assets/preview.png)
 
@@ -53,4 +74,4 @@ Flags: `--dir PATH` (scan somewhere else, repeatable), `--out FILE`, `--no-open`
 | `assets/tokenomicon-wordmark.svg` / `-dark.svg` | Logo and name, for light and dark backgrounds |
 | `assets/preview.png` | Screenshot with four demo sessions selected |
 
-Generated `tokenomicon-report.html` files hold your own usage data, so `.gitignore` keeps them out of the repo.
+Generated `tokenomicon-report.html` files and `tokenomicon-cloud*.json` exports hold your own usage data, so `.gitignore` keeps them out of the repo.

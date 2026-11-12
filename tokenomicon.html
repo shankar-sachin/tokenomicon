@@ -258,13 +258,14 @@ footer { color: var(--text-3); font-size: 12px; margin-top: 8px; }
     <h2>Summon your sessions</h2>
     <p>Tokenomicon scans the transcripts Claude Code keeps on your machine. Pick one session or a pile of them and it breaks down exactly what they cost: input, output, cache reads, cache writes, the works. Nothing leaves your computer.</p>
     <div class="drop" id="drop">
-      <strong>Drop your <code>~/.claude/projects</code> folder (or some .jsonl files) here</strong>
+      <strong>Drop your <code>~/.claude/projects</code> folder (or some .jsonl files, or a cloud export) here</strong>
       <ol class="steps">
         <li>Fastest: run <code>python3 tokenomicon.py --serve</code>. It scans your logs and opens this page with everything loaded.</li>
         <li>Or hit <b>Load folder</b> and pick <code>~/.claude/projects</code>. On a Mac, press <code>Cmd+Shift+.</code> in the picker to see hidden folders.</li>
+        <li>Sessions from the desktop app, the web, your phone or project threads run in Claude's cloud and never land on your disk. Drop a <code>tokenomicon-cloud.json</code> export here (or next to <code>tokenomicon.py</code>) to see those too.</li>
         <li>Or poke around with <b>Demo data</b> first. Zero judgment.</li>
       </ol>
-      <p style="margin:16px 0 0"><button class="btn primary" id="btnFolder2" type="button">Load folder</button> <button class="btn" id="btnFiles" type="button">Pick .jsonl files</button> <button class="btn" id="btnDemo2" type="button">Demo data</button></p>
+      <p style="margin:16px 0 0"><button class="btn primary" id="btnFolder2" type="button">Load folder</button> <button class="btn" id="btnFiles" type="button">Pick files</button> <button class="btn" id="btnDemo2" type="button">Demo data</button></p>
     </div>
   </section>
 
@@ -479,10 +480,15 @@ function textOf(content) {
   }
   return null;
 }
-function isRealPrompt(t) {
-  if (!t) return false;
-  const s = t.trim();
-  return !!s && !s.startsWith("<") && !s.startsWith("Caveat:") && !s.startsWith("[Request interrupted");
+// Slash-command and reminder blocks are noise; any other wrapper tag (Remote Control, the desktop app)
+// just hides the text you actually typed, so peel it off instead of tossing the whole prompt.
+const NOISE_TAGS = /<(system-reminder|command-name|command-message|command-args|local-command-stdout|local-command-stderr|local-command-caveat|bash-input|bash-stdout|bash-stderr)\b[^>]*>[\s\S]*?<\/\1>/g;
+function cleanPrompt(t) {
+  if (!t) return "";
+  let s = String(t);
+  if (s.trimStart().startsWith("<")) s = s.replace(NOISE_TAGS, " ").replace(/<\/?[A-Za-z][\w:.-]*(\s[^>]*)?\/?>/g, " ");
+  s = s.replace(/\s+/g, " ").trim();
+  return !s || s.startsWith("Caveat:") || s.startsWith("[Request interrupted") ? "" : s;
 }
 const zeroTok = () => ({ inp: 0, cw5: 0, cw1: 0, cr: 0, out: 0, think: 0, web: 0 });
 const zeroCost = () => ({ inp: 0, cw5: 0, cw1: 0, cr: 0, out: 0, web: 0 });
@@ -524,8 +530,8 @@ function buildSessions(objs, fileHints) {
     s.times.push(ts);
     if (!s.cwd && o.cwd) s.cwd = o.cwd;
     if (o.type === "user" && !o.isSidechain && !o.isMeta && o.message) {
-      const t = textOf(o.message.content);
-      if (isRealPrompt(t) && ts < s.promptTs) { s.prompt = t.trim().replace(/\s+/g, " ").slice(0, 200); s.promptTs = ts; }
+      const t = cleanPrompt(textOf(o.message.content));
+      if (t && ts < s.promptTs) { s.prompt = t.slice(0, 200); s.promptTs = ts; }
     }
     if (o.type === "assistant" && o.message && o.message.usage) {
       const model = o.message.model;
@@ -592,9 +598,49 @@ function buildSessions(objs, fileHints) {
       search: null,
     });
   }
-  for (const s of out) s.search = (s.title + " " + s.prompt + " " + s.project + " " + Object.keys(s.byModel).join(" ") + " " + s.id).toLowerCase();
+  for (const s of out) indexSearch(s);
   out.sort((a, b) => b.start - a.start);
   return out;
+}
+function indexSearch(s) {
+  s.search = [s.title, s.prompt, s.project, s.project.replace(/[-_.]+/g, " "), s.cwd, Object.keys(s.byModel).join(" "), s.id, s.cloud ? "cloud" : ""].join(" ").toLowerCase();
+  return s;
+}
+
+// Sessions that ran in Claude's cloud (desktop app, web, phone, project threads) never touch
+// ~/.claude/projects. Claude keeps only running totals for those, so they arrive as one summary each:
+// the format is {"tokenomicon":"cloud-sessions","sessions":[{id,title,project,repos,origin,model,start,end,usage}]}.
+const isCloudExport = o => o && o.tokenomicon === "cloud-sessions" && Array.isArray(o.sessions);
+function cloudSessions(list) {
+  const out = [];
+  for (const c of list || []) {
+    if (!c || !c.id || !c.usage) continue;
+    const start = Date.parse(c.start);
+    if (!Number.isFinite(start)) continue;
+    const end = Math.max(start, Date.parse(c.end) || start);
+    const u = c.usage, p = priceFor(c.model);
+    const tok = zeroTok();
+    tok.inp = u.input_tokens || 0; tok.out = u.output_tokens || 0; tok.cr = u.cache_read_tokens || 0;
+    tok.cw1 = u.cache_write_tokens || 0; // cloud sessions cache for an hour
+    const cost = { inp: tok.inp * p.in / 1e6, cw5: 0, cw1: tok.cw1 * p.in * 2 / 1e6, cr: tok.cr * p.cr / 1e6, out: tok.out * p.out / 1e6, web: 0 };
+    // Claude's own bill wins (it knows about subagents on other models); list prices just split it by token type.
+    const est = sumCost(cost), rep = Number(u.cost_usd) || 0, k = rep > 0 && est > 0 ? rep / est : 1;
+    for (const key in cost) cost[key] *= k;
+    const total = sumCost(cost), project = String(c.project || "cloud");
+    out.push(indexSearch({
+      id: c.id, project, cwd: (c.repos || []).join(", "), prompt: "", origin: c.origin || "cloud",
+      title: String(c.title || "Untitled cloud session").replace(/\s+/g, " ").trim(), titleSource: "cloud",
+      start, end, wall: end - start, active: 0,
+      tok, cost, total, byModel: { [p.name]: { calls: 0, tok: { ...tok }, cost: { ...cost }, total } }, primary: p.name, calls: [],
+      saved: tok.cr * (p.in - p.cr) / 1e6 * k, cc: null, unknown: p.known ? [] : [c.model], cloud: true, search: "",
+    }));
+  }
+  return out;
+}
+function mergeSessions(...lists) {
+  const byId = new Map();
+  for (const l of lists) for (const s of l || []) if (!byId.has(s.id)) byId.set(s.id, s);
+  return [...byId.values()].sort((a, b) => b.start - a.start);
 }
 
 function parseJSONL(text, hint, objs, hints) {
@@ -711,10 +757,10 @@ function renderList() {
     const cb = el("input", { type: "checkbox", "aria-label": "Select session: " + s.title });
     cb.checked = on;
     const models = Object.keys(s.byModel);
-    const meta = [s.project, fmtDateTime(s.start), fmtDur(s.active), models[0] === s.primary && models.length === 1 ? s.primary : s.primary + " +" + (models.length - 1)].join(" · ");
+    const meta = [s.project, fmtDateTime(s.start), s.cloud ? "cloud" : fmtDur(s.active),models[0] === s.primary && models.length === 1 ? s.primary : s.primary + " +" + (models.length - 1)].join(" · ");
     const label = el("label", { class: "item" + (on ? " on" : "") },
       cb,
-      el("div", { style: "min-width:0" }, el("div", { class: "p", title: s.prompt && s.prompt !== s.title ? "First prompt: " + s.prompt : s.title }, s.title), el("div", { class: "m", title: s.cwd || s.project }, meta)),
+      el("div", { style: "min-width:0" }, el("div", { class: "p", title: s.prompt && s.prompt !== s.title ? "First prompt: " + s.prompt : s.title }, s.title), el("div", { class: "m", title: s.cloud ? "Ran in Claude's cloud (" + s.origin + ")" + (s.cwd ? ": " + s.cwd : "") + ". Totals only, no per-call detail." : s.cwd || s.project }, meta)),
       el("div", { class: "c num" }, fmtUSD(s.total), el("small", null, fmtTok(s.tok.inp + s.tok.cw5 + s.tok.cw1 + s.tok.cr + s.tok.out) + " tok")));
     cb.addEventListener("change", () => {
       if (cb.checked) state.selected.add(s.id); else state.selected.delete(s.id);
@@ -772,19 +818,19 @@ function renderDetail() {
   if (!fp.hidden) fp.textContent = "First prompt: " + one.prompt;
   const projects = [...new Set(sel.map(s => s.project))];
   document.getElementById("dSub").textContent = one
-    ? [one.project, fmtDateTime(one.start) + " to " + fmtTime(one.end), "session " + one.id.slice(0, 8)].join(" · ")
+    ? [one.project, fmtDateTime(one.start) + " to " + (one.cloud ? fmtDateTime(one.end) : fmtTime(one.end)), one.cloud ? "ran in the cloud (" + one.origin + ")" : "session " + one.id.slice(0, 8)].join(" · ")
     : [projects.length <= 3 ? projects.join(", ") : projects.length + " projects", fmtDateTime(sel[0].start) + " to " + fmtDateTime(sel[sel.length - 1].end)].join(" · ");
   document.getElementById("quip").innerHTML = quipFor(total);
 
   // KPI tiles
   const cw = tok.cw5 + tok.cw1;
   const tiles = [
-    ["Total cost", fmtUSD(total), nCalls + " API calls · " + fmtUSD4(nCalls ? total / nCalls : 0) + " each", null, true],
+    ["Total cost", fmtUSD(total), (nCalls ? nCalls + " API calls · " + fmtUSD4(total / nCalls) + " each" : "cloud totals, no per-call detail") + (nCalls && sel.some(s => s.cloud) ? " (plus cloud totals)" : ""), null, true],
     ["Fresh input", fmtTok(tok.inp), fmtUSD(cost.inp), "--s1"],
     ["Cache writes", fmtTok(cw), fmtUSD(cost.cw5 + cost.cw1), "--s2"],
     ["Cache reads", fmtTok(tok.cr), fmtUSD(cost.cr) + " · saved you " + fmtUSD(saved), "--s3"],
     ["Output", fmtTok(tok.out), fmtUSD(cost.out) + (tok.think ? " · " + fmtTok(tok.think) + " thinking" : ""), "--s4"],
-    ["Time", fmtDur(active), fmtDur(wall) + " wall clock"],
+    ["Time", fmtDur(active), fmtDur(wall) + " wall clock" + (sel.some(s => s.cloud) ? " · cloud sessions don't log active time" : "")],
   ];
   document.getElementById("kpis").replaceChildren(...tiles.map(([l, v, sub, color, hero]) =>
     el("div", { class: "kpi" + (hero ? " hero" : "") },
@@ -836,7 +882,7 @@ function renderDetail() {
       el("tbody", null, ...ordered.map(s => el("tr", null,
         el("td", null, el("button", { class: "x", type: "button", title: "Remove from selection", "aria-label": "Remove from selection", onclick: () => { state.selected.delete(s.id); saveSel(); renderList(); renderDetail(); } }, "×")),
         el("td", { class: "prompt", title: s.prompt ? "First prompt: " + s.prompt : s.title }, s.title), el("td", null, s.project), el("td", null, fmtDateTime(s.start)),
-        el("td", { class: "r num" }, fmtDur(s.active)), el("td", { class: "r num" }, fmtDur(s.wall)),
+        el("td", { class: "r num" }, s.cloud ? "n/a" : fmtDur(s.active)), el("td", { class: "r num" }, fmtDur(s.wall)),
         el("td", { class: "r num" }, fmtTok(s.tok.inp)), el("td", { class: "r num" }, fmtTok(s.tok.cw5 + s.tok.cw1)), el("td", { class: "r num" }, fmtTok(s.tok.cr)), el("td", { class: "r num" }, fmtTok(s.tok.out)),
         el("td", { class: "r num" }, el("b", null, fmtUSD(s.total))),
         el("td", { class: "r num" }, pct(s.total, total) + "%", el("span", { class: "share" }, el("b", { style: "width:" + (s.total / (total || 1) * 100).toFixed(1) + "%" })))))));
@@ -856,7 +902,12 @@ function niceMax(v) {
 function renderCalls(sel) {
   const host = document.getElementById("calls");
   let items;
-  if (sel.length === 1) {
+  if (sel.length === 1 && sel[0].cloud) {
+    const s = sel[0];
+    document.getElementById("callsTitle").textContent = "Cost per API call";
+    document.getElementById("callsHint").textContent = "This one ran in Claude's cloud, which only keeps running totals, so it's one big bar instead of a receipt per call.";
+    items = [{ label: "Whole session · " + fmtDateTime(s.start), sub: s.primary + " · cloud", tok: s.tok, cost: s.cost, total: s.total }];
+  } else if (sel.length === 1) {
     document.getElementById("callsTitle").textContent = "Cost per API call";
     document.getElementById("callsHint").textContent = "Each bar is one request to Claude, in order, stacked by token type. Hover for the receipt.";
     items = sel[0].calls.map((c, i) => ({ label: "Call " + (i + 1) + " · " + fmtTime(c.ts), sub: c.model + (c.side ? " · subagent" : "") + (c.fast ? " · fast" : ""), tok: c.tok, cost: c.cost, total: c.total }));
@@ -945,10 +996,21 @@ function downloadCSV() {
 
 /* ---------- loading ---------- */
 async function loadFiles(files) {
-  const objs = [], hints = [];
+  const objs = [], hints = [], cloud = [];
   let nFiles = 0, bad = 0;
-  const jsonl = [...files].filter(f => /\.jsonl$/i.test(f.name));
-  if (!jsonl.length) { alert("No .jsonl files in there. Point me at ~/.claude/projects (or a folder inside it)."); return; }
+  const all = [...files];
+  const jsonl = all.filter(f => /\.jsonl$/i.test(f.name));
+  const json = all.filter(f => /\.json$/i.test(f.name));
+  for (const f of json) { // cloud exports; anything else that happens to be .json is ignored
+    try { const o = JSON.parse(await f.text()); if (isCloudExport(o)) cloud.push(...o.sessions); } catch {}
+  }
+  if (!jsonl.length && !cloud.length) { alert("No .jsonl transcripts or cloud exports in there. Point me at ~/.claude/projects (or a folder inside it), or a tokenomicon-cloud.json."); return; }
+  const cs = cloudSessions(cloud);
+  if (!jsonl.length) { // just a cloud export: add it to whatever's already loaded
+    const merged = mergeSessions(state.sessions.filter(s => !s.cloud), cs);
+    load(merged, (state.label && state.sessions.some(s => !s.cloud) ? state.label.replace(/ \+ \d+ cloud sessions?$/, "") + " + " : "") + cs.length + " cloud sessions", true);
+    return;
+  }
   document.getElementById("source").textContent = "Reading " + jsonl.length + " files...";
   for (const f of jsonl) {
     const rel = f.webkitRelativePath || f._rel || f.name;
@@ -957,8 +1019,9 @@ async function loadFiles(files) {
     bad += parseJSONL(await f.text(), hint, objs, hints);
     nFiles++;
   }
-  const sessions = buildSessions(objs, hints);
-  load(sessions, nFiles + (nFiles === 1 ? " file, " : " files, ") + sessions.length + " sessions" + (bad ? ", " + bad + " junk lines skipped" : ""), false);
+  const local = buildSessions(objs, hints);
+  const sessions = mergeSessions(local, cs);
+  load(sessions, nFiles + (nFiles === 1 ? " file, " : " files, ") + local.length + " sessions" + (cs.length ? " + " + cs.length + " cloud sessions" : "") + (bad ? ", " + bad + " junk lines skipped" : ""), false);
   if (!sessions.length) alert("Read the files but found no Claude usage in them. Are these Claude Code transcripts?");
 }
 
@@ -1027,8 +1090,9 @@ function setTheme(t) {
   setupDrop();
   const embedded = window.TOKENOMICON_DATA;
   if (embedded && embedded.records) {
-    const sessions = buildSessions(embedded.records, embedded.hints);
-    load(sessions, "Scanned " + (embedded.files || "?") + (embedded.files === 1 ? " file" : " files") + " at " + new Date(embedded.generatedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }), true);
+    const cs = cloudSessions(embedded.cloud);
+    const sessions = mergeSessions(buildSessions(embedded.records, embedded.hints), cs);
+    load(sessions, "Scanned " + (embedded.files || "?") + (embedded.files === 1 ? " file" : " files") + (cs.length ? " + " + cs.length + " cloud sessions" : "") + " at " + new Date(embedded.generatedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }), true);
   } else if (/[?&]demo\b/.test(location.search)) {
     loadDemo();
   } else {

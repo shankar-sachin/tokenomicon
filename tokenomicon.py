@@ -15,6 +15,7 @@ Nothing is uploaded anywhere. No dependencies beyond Python 3.8+.
 import argparse
 import json
 import os
+import re
 import socket
 import sys
 import time
@@ -24,6 +25,13 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 TEMPLATE = HERE / "tokenomicon.html"
 PLACEHOLDER = "/*__TOKENOMICON_DATA__*/null"
+CLOUD_GLOB = "tokenomicon-cloud*.json"
+
+# Slash-command and reminder blocks are noise. Any other wrapper tag (Remote Control, the desktop app)
+# just hides the text you typed, so peel it off instead of throwing the whole prompt away.
+NOISE_TAGS = re.compile(r"<(system-reminder|command-name|command-message|command-args|local-command-stdout|"
+                        r"local-command-stderr|local-command-caveat|bash-input|bash-stdout|bash-stderr)\b[^>]*>.*?</\1>", re.S)
+ANY_TAG = re.compile(r"</?[A-Za-z][\w:.-]*(\s[^>]*)?/?>")
 
 
 def default_dirs():
@@ -54,8 +62,10 @@ def prompt_text(content):
         text = " ".join(b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text")
     else:
         return None
+    if text.lstrip().startswith("<"):
+        text = ANY_TAG.sub(" ", NOISE_TAGS.sub(" ", text))
     text = " ".join(text.split())
-    if not text or text.startswith("<") or text.startswith("Caveat:"):
+    if not text or text.startswith("Caveat:") or text.startswith("[Request interrupted"):
         return None
     return text[:200]
 
@@ -147,7 +157,29 @@ def collect(dirs):
     return records, hints, files, bad
 
 
-def build_report(dirs, quiet=False):
+def load_cloud(paths, quiet=False):
+    """Cloud sessions (desktop app, web, phone, project threads) never write transcripts to your disk.
+    Claude keeps running totals for them instead; a tokenomicon-cloud.json export carries those."""
+    out, seen = [], set()
+    for path in paths:
+        try:
+            data = json.loads(Path(path).read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            print(f"  skipping cloud export {path}: {e}", file=sys.stderr)
+            continue
+        if not isinstance(data, dict) or data.get("tokenomicon") != "cloud-sessions":
+            print(f"  skipping {path}: not a Tokenomicon cloud export", file=sys.stderr)
+            continue
+        for s in data.get("sessions") or []:
+            if isinstance(s, dict) and s.get("id") and s["id"] not in seen:
+                seen.add(s["id"])
+                out.append(s)
+    if out and not quiet:
+        print(f"Plus {len(out)} cloud sessions from {len(paths)} export file(s)")
+    return out
+
+
+def build_report(dirs, cloud_paths=(), quiet=False):
     """Scan the transcripts and return the dashboard HTML with the data baked in."""
     t0 = time.time()
     records, hints, files, bad = collect(dirs)
@@ -160,6 +192,7 @@ def build_report(dirs, quiet=False):
         "files": files,
         "records": records,
         "hints": hints,
+        "cloud": load_cloud(cloud_paths, quiet),
     }
     blob = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
     html = TEMPLATE.read_text(encoding="utf-8")
@@ -179,7 +212,7 @@ def lan_ip():
         s.close()
 
 
-def serve(dirs, host, port, open_browser):
+def serve(dirs, cloud_paths, host, port, open_browser):
     """Live mode: every page load rescans your logs, so a refresh is always current."""
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -188,7 +221,7 @@ def serve(dirs, host, port, open_browser):
             if self.path.split("?")[0] not in ("/", "/index.html"):
                 self.send_error(404)
                 return
-            body = build_report(dirs, quiet=True).encode("utf-8")
+            body = build_report(dirs, cloud_paths(), quiet=True).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
@@ -221,6 +254,8 @@ def main():
     ap.add_argument("--out", default=str(HERE / "tokenomicon-report.html"), help="where to write the report")
     ap.add_argument("--no-open", action="store_true", help="don't open the browser")
     ap.add_argument("--serve", action="store_true", help="run a live local server instead of writing a file")
+    ap.add_argument("--cloud", action="append", metavar="FILE",
+                    help="cloud session export to include (repeatable). Default: any tokenomicon-cloud*.json next to this script")
     ap.add_argument("--port", type=int, default=8787, help="port for --serve (default 8787)")
     ap.add_argument("--host", default="127.0.0.1",
                     help="address for --serve (default 127.0.0.1; use 0.0.0.0 to share on your network)")
@@ -238,13 +273,18 @@ def main():
     for d in dirs:
         print("  " + str(d))
 
+    def cloud_paths():  # re-checked on every refresh in --serve mode, so a new export shows up without a restart
+        if args.cloud:
+            return [Path(c).expanduser() for c in args.cloud]
+        return sorted(HERE.glob(CLOUD_GLOB))
+
     if args.serve:
-        build_report(dirs)  # fail fast and show counts before going live
-        serve(dirs, args.host, args.port, not args.no_open)
+        build_report(dirs, cloud_paths())  # fail fast and show counts before going live
+        serve(dirs, cloud_paths, args.host, args.port, not args.no_open)
         return
 
     out = Path(args.out).expanduser()
-    out.write_text(build_report(dirs), encoding="utf-8")
+    out.write_text(build_report(dirs, cloud_paths()), encoding="utf-8")
     print(f"Report: {out}")
     if not args.no_open:
         webbrowser.open(out.resolve().as_uri())
