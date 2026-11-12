@@ -16,6 +16,7 @@ import argparse
 import json
 import os
 import re
+from datetime import datetime
 import socket
 import sys
 import threading
@@ -111,11 +112,213 @@ def slim(obj):
         out["message"] = {"id": msg.get("id"), "model": msg.get("model"), "usage": keep}
         if obj.get("requestId"):
             out["requestId"] = obj["requestId"]
+        tags = tool_tags(msg.get("content"))
+        if tags:
+            out["tools"] = tags
     else:
         # isMeta lines are injected context (skills, reminders), not something you typed
         p = None if obj.get("isSidechain") or obj.get("isMeta") else prompt_text(msg.get("content"))
         out["message"] = {"role": "user", "content": p} if p else {}
+        content = msg.get("content")
+        if isinstance(content, list):
+            errs = sum(1 for b in content if isinstance(b, dict) and b.get("type") == "tool_result" and b.get("is_error"))
+            if errs:
+                out["errs"] = errs
     return out
+
+
+BASH_TAGS = [  # what a shell command was for, so a turn can be told apart from another; checked in order
+    ("test", re.compile(r"\b(pytest|jest|vitest|mocha|go test|cargo test|npm (run )?test|pnpm (run )?test|yarn test|bun test|unittest|rspec|phpunit|ctest)\b")),
+    ("git", re.compile(r"\b(git|gh)\s")),
+    ("build", re.compile(r"\b(npm run build|pnpm (run )?build|yarn build|cargo build|go build|make\b|tsc\b|vite build|xcodebuild|swiftc|docker|deploy|vercel|firebase|netlify|wrangler|release|publish|brew)")),
+    ("install", re.compile(r"\b(npm (i|install|ci)|pnpm (i|install|add)|yarn add|pip3? install|uv (pip|add|sync)|cargo add|brew install)\b")),
+]
+EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
+
+
+def tool_tags(content):
+    """Tool names Claude called in this message, plus a hint of what for (Bash:git, Edit:.md). No arguments kept."""
+    if not isinstance(content, list):
+        return None
+    tags = []
+    for b in content:
+        if not isinstance(b, dict) or b.get("type") != "tool_use":
+            continue
+        name = str(b.get("name") or "?")
+        inp = b.get("input") if isinstance(b.get("input"), dict) else {}
+        if name == "Bash":
+            cmd = str(inp.get("command") or "")
+            kind = next((k for k, rx in BASH_TAGS if rx.search(cmd)), None)
+            tags.append("Bash:" + kind if kind else "Bash")
+        elif name in EDIT_TOOLS:
+            ext = os.path.splitext(str(inp.get("file_path") or inp.get("notebook_path") or ""))[1].lower()
+            tags.append(name + ":" + ext if ext else name)
+        else:
+            tags.append(name)
+    return tags or None
+
+
+# ---------- activity heuristics (CodeBurn-style) ----------
+# A "turn" is one thing you typed plus every API call Claude made answering it.
+def _rx(words):
+    return re.compile(r"\b(" + "|".join(words) + r")\b", re.I)
+
+
+DEBUG_RX = _rx(["fix", "fixes", "bug", "bugs", "error", "errors", "broken", "crash", "crashes", "fails", "failing", "failed",
+                "issue", "doesn't work", "does not work", "not working", "wrong", "debug", "stack ?trace", "exception", "regression"])
+REFACTOR_RX = _rx(["refactor", "clean ?up", "cleanup", "rename", "simplify", "reorganize", "restructure", "extract", "dedupe", "tidy"])
+PLAN_RX = _rx(["plan", "design", "approach", "architecture", "should we", "should i", "how would", "strategy", "roadmap", "options", "trade-?offs?", "spec"])
+TEST_RX = _rx(["test", "tests", "testing", "coverage"])
+GIT_RX = _rx(["commit", "push", "pr", "pull request", "merge", "rebase", "branch", "cherry-pick"])
+RETRY_RX = _rx(["still", "again", "doesn't work", "didn't work", "does not work", "not working", "nope", "wrong", "broken",
+                "same error", "try again", "that's not", "undo", "revert", "didn't fix", "not fixed", "still broken"])
+DOC_EXTS = {".md", ".mdx", ".txt", ".rst"}
+EXPLORE_TOOLS = {"Read", "Grep", "Glob", "LS", "WebFetch", "WebSearch", "NotebookRead"}
+ACTIVITIES = ["Coding", "Debugging", "Refactoring", "Testing", "Docs", "Exploration", "Planning",
+              "Git & PRs", "Build & deploy", "Delegation", "Conversation"]
+
+
+def classify(prompt, tags):
+    p = prompt or ""
+    names = {t.split(":")[0] for t in tags}
+    bash = {t.split(":", 1)[1] for t in tags if t.startswith("Bash:")}
+    edits = [t for t in tags if t.split(":")[0] in EDIT_TOOLS]
+    if not tags:
+        return "Planning" if PLAN_RX.search(p) else "Conversation"
+    if edits:
+        if DEBUG_RX.search(p):
+            return "Debugging"
+        if REFACTOR_RX.search(p):
+            return "Refactoring"
+        exts = {t.split(":", 1)[1] if ":" in t else "" for t in edits}
+        if exts and exts <= DOC_EXTS:
+            return "Docs"
+        if "test" in bash and TEST_RX.search(p):
+            return "Testing"
+        return "Coding"
+    if "git" in bash or GIT_RX.search(p) and names <= {"Bash", "Read", "Grep", "Glob"}:
+        return "Git & PRs"
+    if "build" in bash or "install" in bash:
+        return "Build & deploy"
+    if "test" in bash:
+        return "Testing"
+    if DEBUG_RX.search(p):
+        return "Debugging"
+    if names & {"Agent", "Task"}:
+        return "Delegation"
+    if names & EXPLORE_TOOLS or "Bash" in names:
+        return "Exploration"
+    return "Planning" if PLAN_RX.search(p) else "Conversation"
+
+
+def _ts(s):
+    try:
+        return int(datetime.fromisoformat(s.replace("Z", "+00:00")).timestamp() * 1000)
+    except (ValueError, AttributeError):
+        return None
+
+
+def compact(records, hints):
+    """Boil raw records down to what the page draws: one row per API call, one row per turn, totals per session.
+    This is what keeps the page small (a few hundred KB instead of tens of MB)."""
+    models, model_idx = [], {}
+    sess = {}
+    for rec, hint in zip(records, hints):
+        sid = rec.get("sessionId")
+        if not sid:
+            continue
+        s = sess.get(sid)
+        if s is None:
+            s = sess[sid] = {"id": sid, "hint": hint, "cwd": None, "custom": None, "ai": None, "summary": None,
+                             "events": [], "calls": {}}
+        if hint and not s["hint"]:
+            s["hint"] = hint
+        t = rec.get("type")
+        if t == "custom-title":
+            s["custom"] = rec.get("customTitle"); continue
+        if t == "ai-title":
+            s["ai"] = rec.get("aiTitle"); continue
+        if t == "summary":
+            s["summary"] = rec.get("summary"); continue
+        if t not in ("user", "assistant"):
+            continue
+        ts = _ts(rec.get("timestamp"))
+        if ts is None:
+            continue
+        if not s["cwd"] and rec.get("cwd"):
+            s["cwd"] = rec["cwd"]
+        msg = rec.get("message") or {}
+        if t == "user":
+            prompt = None if rec.get("isSidechain") else msg.get("content")
+            s["events"].append((ts, "u", prompt, rec.get("errs", 0)))
+            continue
+        s["events"].append((ts, "t", None, 0))
+        u, model = msg.get("usage"), msg.get("model")
+        if not u or not model or model == "<synthetic>":
+            continue
+        key = msg.get("id") or rec.get("requestId") or (sid, ts)
+        prev = s["calls"].get(key)
+        tags = rec.get("tools") or []
+        if prev:  # Claude Code writes one line per content block, each repeating the usage
+            prev["tags"] += tags
+            if (u.get("output_tokens") or 0) > (prev["u"].get("output_tokens") or 0):
+                prev["u"] = u
+            continue
+        s["calls"][key] = {"ts": ts, "model": model, "u": u, "side": bool(rec.get("isSidechain")), "tags": list(tags)}
+    out = []
+    for s in sess.values():
+        calls = sorted(s["calls"].values(), key=lambda c: c["ts"])
+        if not calls:
+            continue
+        events = sorted(s["events"], key=lambda e: e[0])
+        times = [e[0] for e in events]
+        start, end = times[0], times[-1]
+        active = sum(b - a for a, b in zip(times, times[1:]) if b - a <= 5 * 60 * 1000)
+        # turns: split on real prompts you typed; calls belong to the latest prompt before them
+        prompts = [(e[0], e[2]) for e in events if e[1] == "u" and e[2]]
+        errs = [e[0] for e in events if e[1] == "u" and e[3]]
+        turns, ci = [], 0
+        bounds = prompts + [(float("inf"), None)]
+        if calls[0]["ts"] < (prompts[0][0] if prompts else float("inf")):
+            bounds = [(start, None)] + bounds
+        for (t0, prompt), (t1, nxt) in zip(bounds, bounds[1:]):
+            first = ci
+            while ci < len(calls) and calls[ci]["ts"] < t1:
+                ci += 1
+            if ci == first:
+                continue
+            tc = calls[first:ci]
+            tags = [g for c in tc for g in c["tags"]]
+            cat = classify(prompt, tags)
+            edited = [c["ts"] for c in tc if any(g.split(":")[0] in EDIT_TOOLS for g in c["tags"])]
+            if edited:
+                # one-shot: no edit after a failed tool call in this turn, and your next message isn't "still broken"
+                retried = any(e < x for e in errs if t0 <= e < t1 for x in edited)
+                one = 0 if retried or (nxt and RETRY_RX.search(nxt)) else 1
+            else:
+                one = -1
+            turns.append([first, ci - 1, ACTIVITIES.index(cat), one])
+        rows = []
+        for c in calls:
+            u = c["u"]
+            if c["model"] not in model_idx:
+                model_idx[c["model"]] = len(models)
+                models.append(c["model"])
+            cw_total = u.get("cache_creation_input_tokens") or 0
+            cc = u.get("cache_creation") or {}
+            cw1 = cc.get("ephemeral_1h_input_tokens") or 0
+            cw5 = cc.get("ephemeral_5m_input_tokens") or 0
+            if cw1 + cw5 < cw_total:
+                cw5 += cw_total - cw1 - cw5
+            think = (u.get("output_tokens_details") or {}).get("thinking_tokens") or 0
+            web = (u.get("server_tool_use") or {}).get("web_search_requests") or 0
+            flags = (1 if u.get("speed") == "fast" else 0) | (2 if c["side"] else 0)
+            rows.append([c["ts"] - start, model_idx[c["model"]], u.get("input_tokens") or 0, cw5, cw1,
+                         u.get("cache_read_input_tokens") or 0, u.get("output_tokens") or 0, think, web, flags])
+        out.append({"id": s["id"], "cwd": s["cwd"] or "", "hint": s["hint"], "custom": s["custom"], "ai": s["ai"],
+                    "summary": s["summary"], "prompt": prompts[0][1] if prompts else "", "start": start, "end": end,
+                    "active": active, "calls": rows, "turns": turns})
+    return {"models": models, "activities": ACTIVITIES, "sessions": out}
 
 
 class Collector:
@@ -246,8 +449,8 @@ def build_report(collector, cloud_paths=(), quiet=False, live=False):
     payload = {
         "generatedAt": generated + 1,  # also where Live Track starts counting from
         "files": files,
-        "records": records,
-        "hints": hints,
+        "v": 2,
+        "data": compact(records, hints),
         "cloud": load_cloud(cloud_paths, quiet),
         "live": live,  # only the --serve page can poll for updates
     }
@@ -288,7 +491,7 @@ def serve(collector, cloud_paths, host, port, open_browser):
                     collector.refresh(now)
                     sids = collector.changed_since(since)
                     records, hints, _, _ = collector.assemble(sids) if sids else ([], [], 0, 0)
-                payload = {"now": now + 1, "sessions": sorted(sids), "records": records, "hints": hints}
+                payload = {"now": now + 1, "sessions": sorted(sids), "data": compact(records, hints)}
                 self._send(json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8"),
                            "application/json")
                 return
@@ -304,7 +507,10 @@ def serve(collector, cloud_paths, host, port, open_browser):
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
-            self.wfile.write(body)
+            try:
+                self.wfile.write(body)
+            except (BrokenPipeError, ConnectionResetError):
+                pass  # the tab closed or navigated away mid-response; nothing to see here
 
         def log_message(self, fmt, *args):
             pass
