@@ -27,7 +27,7 @@ Flags: `--dir PATH` (scan somewhere else, repeatable), `--out FILE`, `--no-open`
 
 ## How it works
 
-1. **Pick sessions.** The left panel lists every session it found, with its first prompt, project, date, time spent, cost and token count. Search, filter by project or date (24h / 7d / 30d / All), sort by newest, priciest, most tokens or longest, and tick as many as you like. "Select all shown" grabs everything that matches your filter.
+1. **Pick sessions.** The left panel lists every session it found under the same name Claude Code's `/resume` shows (your `/rename` title, else Claude's auto-generated title, else the first prompt), plus project, date, time spent, cost and token count. Hover a name to see the first prompt. Search, filter by project or date (24h / 7d / 30d / All), sort by newest, priciest, most tokens or longest, and tick as many as you like. "Select all shown" grabs everything that matches your filter.
 2. **Read the bill.** The right panel breaks down whatever you picked:
    - Total cost, fresh input, cache writes, cache reads, output (with thinking tokens called out) and time
    - Share of tokens vs share of cost, side by side, so you can see cache reads being 96% of the tokens and a fraction of the money

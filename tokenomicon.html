@@ -275,7 +275,7 @@ footer { color: var(--text-3); font-size: 12px; margin-top: 8px; }
         <span class="source" id="selCount"></span>
       </div>
       <div class="ctl">
-        <input type="search" id="q" placeholder="Search prompts, projects, models" aria-label="Search sessions">
+        <input type="search" id="q" placeholder="Search titles, prompts, projects, models" aria-label="Search sessions">
         <div class="seg" id="range" role="group" aria-label="Date range">
           <button type="button" data-days="1">24h</button>
           <button type="button" data-days="7">7d</button>
@@ -313,6 +313,7 @@ footer { color: var(--text-3); font-size: 12px; margin-top: 8px; }
             <div>
               <h2 id="dTitle"></h2>
               <p id="dSub"></p>
+              <p id="dPrompt" class="muted" style="font-size:12.5px;overflow-wrap:anywhere" hidden></p>
             </div>
             <button class="btn sm" id="csvBtn" type="button">Download CSV</button>
           </div>
@@ -497,9 +498,19 @@ function buildSessions(objs, fileHints) {
     if (!s) { s = { id, cwd: null, hint, times: [], prompt: null, promptTs: Infinity, cc: null }; sess.set(id, s); }
     return s;
   };
+  const uuidSess = new Map(), summaries = [];
   for (let i = 0; i < objs.length; i++) {
     const o = objs[i];
-    if (!o || typeof o !== "object" || !o.sessionId) continue;
+    if (!o || typeof o !== "object") continue;
+    // Session names, the way Claude Code's /resume picks them: /rename title, then AI title, then summary.
+    if (o.type === "summary" && o.summary) { // older versions point at a message uuid; tokenomicon.py pre-resolves it
+      if (o.sessionId) getS(o.sessionId, null).summary = o.summary; else if (o.leafUuid) summaries.push(o);
+      continue;
+    }
+    if (!o.sessionId) continue;
+    if (o.uuid) uuidSess.set(o.uuid, o.sessionId);
+    if (o.type === "custom-title") { if (o.customTitle) getS(o.sessionId, null).customTitle = o.customTitle; continue; }
+    if (o.type === "ai-title") { if (o.aiTitle) getS(o.sessionId, null).aiTitle = o.aiTitle; continue; }
     if (o.type === "cost-state") { // Claude Code's own running tally, if this version writes it; resets per process
       const s = getS(o.sessionId, null);
       const runs = s.ccRuns || (s.ccRuns = new Map());
@@ -551,6 +562,8 @@ function buildSessions(objs, fileHints) {
     };
     (s.calls = s.calls || []).push({ ts: c.ts, model: p.name, known: p.known, rawModel: c.model, side: c.side, fast: mult > 1, tok, cost, total: sumCost(cost), saved: tok.cr * (p.in - p.cr) / 1e6 * mult });
   }
+  for (const o of summaries) { const s = sess.get(uuidSess.get(o.leafUuid)); if (s) s.summary = o.summary; }
+  const clean = t => t ? String(t).replace(/\s+/g, " ").trim() : "";
   const out = [];
   for (const s of sess.values()) {
     if (!s.calls || !s.calls.length) continue;
@@ -570,14 +583,16 @@ function buildSessions(objs, fileHints) {
     const project = cwd ? cwd.replace(/[\\/]+$/, "").split(/[\\/]/).pop() : (s.hint || "unknown");
     const end = s.times[s.times.length - 1];
     out.push({
-      id: s.id, project, cwd, prompt: s.prompt || "Untitled session in " + project, start: s.times[0], end, wall: end - s.times[0], active,
+      id: s.id, project, cwd, prompt: s.prompt || "",
+      title: clean(s.customTitle) || clean(s.aiTitle) || clean(s.summary) || s.prompt || "Untitled session in " + project,
+      titleSource: s.customTitle ? "renamed" : s.aiTitle ? "ai" : s.summary ? "summary" : s.prompt ? "prompt" : "none", start: s.times[0], end, wall: end - s.times[0], active,
       tok, cost, total: sumCost(cost), byModel, primary, calls: s.calls, saved,
       cc: s.ccRuns ? [...s.ccRuns.values()].reduce((a, r) => ({ cost: a.cost + r.cost, api: a.api + r.api, tool: a.tool + r.tool }), { cost: 0, api: 0, tool: 0 }) : null,
       unknown: [...new Set(s.calls.filter(c => !c.known).map(c => c.rawModel))],
       search: null,
     });
   }
-  for (const s of out) s.search = (s.prompt + " " + s.project + " " + Object.keys(s.byModel).join(" ") + " " + s.id).toLowerCase();
+  for (const s of out) s.search = (s.title + " " + s.prompt + " " + s.project + " " + Object.keys(s.byModel).join(" ") + " " + s.id).toLowerCase();
   out.sort((a, b) => b.start - a.start);
   return out;
 }
@@ -606,6 +621,13 @@ function makeDemo() {
     "set up GitHub Actions for lint and test", "port the cron job to a queue worker",
     "rename everything called 'data2' to something a human would choose", "draft the README for the CLI", "investigate the 3am pager alert",
   ];
+  const aiTitles = [ // what Claude Code's auto-titler would call them, same order as prompts
+    "Fix flaky auth test", "Debug failing CI build", "Refactor webhook handler timeouts", "Add soft deletes migration",
+    "Explain regex basics", "Restyle signup button", "Paginate orders endpoint", "Investigate prod memory leak",
+    "Convert class component to hooks", "Test invoice calculator", "Set up lint and test CI", "Move cron job to queue worker",
+    "Rename data2 variables", "Write CLI README", "Triage 3am pager alert",
+  ];
+  const renames = ["auth hell", "THE memory leak", "friday deploy cleanup", "pager duty postmortem"];
   const models = [["claude-opus-5-5", 55], ["claude-sonnet-5-5", 28], ["claude-haiku-5-5", 9], ["claude-fable-5-2", 8]];
   const now = Date.now();
   const objs = [];
@@ -621,7 +643,10 @@ function makeDemo() {
     const model = wpick(models);
     const turns = 3 + Math.floor(rnd() * rnd() * 70);
     let ctx = 18000 + Math.floor(rnd() * 12000);
-    objs.push({ type: "user", sessionId: sid, timestamp: new Date(t).toISOString(), cwd, message: { role: "user", content: pick(prompts) } });
+    const pi = Math.floor(rnd() * prompts.length);
+    objs.push({ type: "user", sessionId: sid, timestamp: new Date(t).toISOString(), cwd, message: { role: "user", content: prompts[pi] } });
+    if (rnd() < 0.85) objs.push({ type: "ai-title", aiTitle: aiTitles[pi], sessionId: sid });
+    if (rnd() < 0.08) objs.push({ type: "custom-title", customTitle: pick(renames), sessionId: sid });
     for (let k = 0; k < turns; k++) {
       t += 4000 + rnd() * 70000;
       if (rnd() < 0.05) t += 20 * 60e3 + rnd() * 60 * 60e3;
@@ -683,13 +708,13 @@ function renderList() {
   const ul = document.getElementById("list");
   ul.replaceChildren(...list.slice(0, state.limit).map(s => {
     const on = state.selected.has(s.id);
-    const cb = el("input", { type: "checkbox", "aria-label": "Select session: " + s.prompt });
+    const cb = el("input", { type: "checkbox", "aria-label": "Select session: " + s.title });
     cb.checked = on;
     const models = Object.keys(s.byModel);
     const meta = [s.project, fmtDateTime(s.start), fmtDur(s.active), models[0] === s.primary && models.length === 1 ? s.primary : s.primary + " +" + (models.length - 1)].join(" · ");
     const label = el("label", { class: "item" + (on ? " on" : "") },
       cb,
-      el("div", { style: "min-width:0" }, el("div", { class: "p", title: s.prompt }, s.prompt), el("div", { class: "m", title: s.cwd || s.project }, meta)),
+      el("div", { style: "min-width:0" }, el("div", { class: "p", title: s.prompt && s.prompt !== s.title ? "First prompt: " + s.prompt : s.title }, s.title), el("div", { class: "m", title: s.cwd || s.project }, meta)),
       el("div", { class: "c num" }, fmtUSD(s.total), el("small", null, fmtTok(s.tok.inp + s.tok.cw5 + s.tok.cw1 + s.tok.cr + s.tok.out) + " tok")));
     cb.addEventListener("change", () => {
       if (cb.checked) state.selected.add(s.id); else state.selected.delete(s.id);
@@ -741,7 +766,10 @@ function renderDetail() {
 
   // header
   const one = sel.length === 1 ? sel[0] : null;
-  document.getElementById("dTitle").textContent = one ? one.prompt : sel.length + " sessions";
+  document.getElementById("dTitle").textContent = one ? one.title : sel.length + " sessions";
+  const fp = document.getElementById("dPrompt");
+  fp.hidden = !(one && one.prompt && one.prompt !== one.title);
+  if (!fp.hidden) fp.textContent = "First prompt: " + one.prompt;
   const projects = [...new Set(sel.map(s => s.project))];
   document.getElementById("dSub").textContent = one
     ? [one.project, fmtDateTime(one.start) + " to " + fmtTime(one.end), "session " + one.id.slice(0, 8)].join(" · ")
@@ -804,10 +832,10 @@ function renderDetail() {
   if (sel.length > 1) {
     const ordered = sel.slice().sort((a, b) => b.total - a.total);
     document.getElementById("perSession").replaceChildren(
-      el("thead", null, el("tr", null, ...["", "First prompt", "Project", "Started", "Active", "Wall", "Fresh in", "Cache W", "Cache R", "Output", "Cost", "Share"].map((h, i) => el("th", { class: i > 3 ? "r" : "" }, h)))),
+      el("thead", null, el("tr", null, ...["", "Session", "Project", "Started", "Active", "Wall", "Fresh in", "Cache W", "Cache R", "Output", "Cost", "Share"].map((h, i) => el("th", { class: i > 3 ? "r" : "" }, h)))),
       el("tbody", null, ...ordered.map(s => el("tr", null,
         el("td", null, el("button", { class: "x", type: "button", title: "Remove from selection", "aria-label": "Remove from selection", onclick: () => { state.selected.delete(s.id); saveSel(); renderList(); renderDetail(); } }, "×")),
-        el("td", { class: "prompt", title: s.prompt }, s.prompt), el("td", null, s.project), el("td", null, fmtDateTime(s.start)),
+        el("td", { class: "prompt", title: s.prompt ? "First prompt: " + s.prompt : s.title }, s.title), el("td", null, s.project), el("td", null, fmtDateTime(s.start)),
         el("td", { class: "r num" }, fmtDur(s.active)), el("td", { class: "r num" }, fmtDur(s.wall)),
         el("td", { class: "r num" }, fmtTok(s.tok.inp)), el("td", { class: "r num" }, fmtTok(s.tok.cw5 + s.tok.cw1)), el("td", { class: "r num" }, fmtTok(s.tok.cr)), el("td", { class: "r num" }, fmtTok(s.tok.out)),
         el("td", { class: "r num" }, el("b", null, fmtUSD(s.total))),
@@ -835,7 +863,7 @@ function renderCalls(sel) {
   } else {
     document.getElementById("callsTitle").textContent = "Cost per session";
     document.getElementById("callsHint").textContent = "Your selected sessions in time order, stacked by token type. Hover for the receipt.";
-    items = sel.map(s => ({ label: fmtDateTime(s.start), sub: s.prompt.slice(0, 60), tok: s.tok, cost: s.cost, total: s.total }));
+    items = sel.map(s => ({ label: fmtDateTime(s.start), sub: s.title.slice(0, 60), tok: s.tok, cost: s.cost, total: s.total }));
   }
   const W = Math.max(320, host.clientWidth || 800), H = 240, padL = 56, padR = 8, padT = 10, padB = 24;
   const iw = W - padL - padR, ih = H - padT - padB, n = items.length;
@@ -903,11 +931,11 @@ function renderPricing() {
 /* ---------- CSV ---------- */
 function downloadCSV() {
   const sel = selection();
-  const head = ["session_id", "project", "first_prompt", "started", "ended", "active_seconds", "wall_seconds", "api_calls", "models",
+  const head = ["session_id", "title", "project", "first_prompt", "started", "ended", "active_seconds", "wall_seconds", "api_calls", "models",
     "fresh_input_tokens", "cache_write_5m_tokens", "cache_write_1h_tokens", "cache_read_tokens", "output_tokens", "thinking_tokens", "web_searches",
     "fresh_input_usd", "cache_write_usd", "cache_read_usd", "output_usd", "web_search_usd", "total_usd"];
   const q = v => { const s = String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const lines = [head.join(",")].concat(sel.map(s => [s.id, s.project, s.prompt, new Date(s.start).toISOString(), new Date(s.end).toISOString(),
+  const lines = [head.join(",")].concat(sel.map(s => [s.id, s.title, s.project, s.prompt, new Date(s.start).toISOString(), new Date(s.end).toISOString(),
     Math.round(s.active / 1000), Math.round(s.wall / 1000), s.calls.length, Object.keys(s.byModel).join(" + "),
     s.tok.inp, s.tok.cw5, s.tok.cw1, s.tok.cr, s.tok.out, s.tok.think, s.tok.web,
     s.cost.inp.toFixed(6), (s.cost.cw5 + s.cost.cw1).toFixed(6), s.cost.cr.toFixed(6), s.cost.out.toFixed(6), s.cost.web.toFixed(6), s.total.toFixed(6)].map(q).join(",")));

@@ -67,6 +67,15 @@ def slim(obj):
         # Claude Code's own running tally (newer versions only). Totals only, no content.
         return {k: obj.get(k) for k in ("type", "sessionId", "totalCostUSD", "totalAPIDuration",
                                          "totalToolDuration", "totalDuration", "startTime")}
+    # Session names, exactly as Claude Code shows them in /resume:
+    # your /rename title, else the auto-generated title, else an older-style summary.
+    if t == "custom-title" and obj.get("sessionId") and obj.get("customTitle"):
+        return {"type": t, "sessionId": obj["sessionId"], "customTitle": obj["customTitle"]}
+    if t == "ai-title" and obj.get("sessionId") and obj.get("aiTitle"):
+        return {"type": t, "sessionId": obj["sessionId"], "aiTitle": obj["aiTitle"]}
+    if t == "summary" and obj.get("leafUuid") and obj.get("summary"):
+        # points at a message uuid, not a session; collect() resolves it
+        return {"type": t, "leafUuid": obj["leafUuid"], "summary": obj["summary"]}
     if t not in ("user", "assistant") or not obj.get("sessionId") or not obj.get("timestamp"):
         return None
     out = {
@@ -100,6 +109,8 @@ def slim(obj):
 
 def collect(dirs):
     records, hints, files, bad = [], [], 0, 0
+    uuid_session = {}  # message uuid -> sessionId, to place "summary" titles
+    summaries = []
     for root in dirs:
         for path in sorted(root.rglob("*.jsonl")):
             files += 1
@@ -112,15 +123,27 @@ def collect(dirs):
                         if not line:
                             continue
                         try:
-                            rec = slim(json.loads(line))
+                            obj = json.loads(line)
+                            rec = slim(obj)
                         except (json.JSONDecodeError, AttributeError, TypeError):
                             bad += 1
                             continue
-                        if rec:
-                            records.append(rec)
-                            hints.append(hint)
+                        if obj.get("uuid") and obj.get("sessionId"):
+                            uuid_session[obj["uuid"]] = obj["sessionId"]
+                        if not rec:
+                            continue
+                        if rec["type"] == "summary":
+                            summaries.append(rec)
+                            continue
+                        records.append(rec)
+                        hints.append(hint)
             except OSError as e:
                 print(f"  skipping {path}: {e}", file=sys.stderr)
+    for rec in summaries:
+        sid = uuid_session.get(rec["leafUuid"])
+        if sid:
+            records.append({"type": "summary", "sessionId": sid, "summary": rec["summary"]})
+            hints.append(None)
     return records, hints, files, bad
 
 
