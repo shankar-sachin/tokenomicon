@@ -63,6 +63,10 @@ def prompt_text(content):
 def slim(obj):
     """Keep only what the dashboard reads. Your code and Claude's replies stay on disk."""
     t = obj.get("type")
+    if t == "cost-state" and obj.get("sessionId"):
+        # Claude Code's own running tally (newer versions only). Totals only, no content.
+        return {k: obj.get(k) for k in ("type", "sessionId", "totalCostUSD", "totalAPIDuration",
+                                         "totalToolDuration", "totalDuration", "startTime")}
     if t not in ("user", "assistant") or not obj.get("sessionId") or not obj.get("timestamp"):
         return None
     out = {
@@ -82,12 +86,14 @@ def slim(obj):
             return out  # still useful as a timestamp
         keep = {k: usage[k] for k in (
             "input_tokens", "output_tokens", "cache_read_input_tokens",
-            "cache_creation_input_tokens", "cache_creation", "speed") if k in usage}
+            "cache_creation_input_tokens", "cache_creation", "speed",
+            "output_tokens_details", "server_tool_use") if k in usage}
         out["message"] = {"id": msg.get("id"), "model": msg.get("model"), "usage": keep}
         if obj.get("requestId"):
             out["requestId"] = obj["requestId"]
     else:
-        p = None if obj.get("isSidechain") else prompt_text(msg.get("content"))
+        # isMeta lines are injected context (skills, reminders), not something you typed
+        p = None if obj.get("isSidechain") or obj.get("isMeta") else prompt_text(msg.get("content"))
         out["message"] = {"role": "user", "content": p} if p else {}
     return out
 
