@@ -134,6 +134,17 @@ select, input[type="search"] {
 .split .lbl { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-2); margin-bottom: 5px; }
 .split .bar { display: flex; height: 26px; border-radius: 6px; overflow: hidden; gap: 2px; background: var(--card); }
 .split .bar div { min-width: 2px; display: flex; align-items: center; justify-content: center; font-size: 11.5px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; }
+.burnbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.burnbar .bctl { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.burnbar .bctl select { min-width: 150px; max-width: 100%; }
+.burn-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr)); gap: 16px; }
+.burn-grid > .card { margin-bottom: 0; min-width: 0; }
+.burn-grid > .card.wide { grid-column: 1 / -1; }
+.burn-grid td .share { width: 48px; }
+.burn > .livebar { margin: 0 0 16px; }
+tr.click { cursor: pointer; }
+tr.click:hover td { background: var(--accent-soft); }
+td.title { max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 12px; font-size: 12px; color: var(--text-2); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
@@ -153,11 +164,11 @@ td.muted, .muted { color: var(--text-3); }
 .x { appearance: none; border: 0; background: transparent; color: var(--text-3); cursor: pointer; font: inherit; font-size: 16px; line-height: 1; padding: 0 4px; }
 .x:hover { color: var(--text); }
 
-#calls svg { display: block; width: 100%; height: 240px; overflow: visible; }
-#calls .axis text { fill: var(--text-3); font-size: 11px; }
-#calls .gridline { stroke: var(--grid); stroke-width: 1; }
-#calls .hit { fill: transparent; }
-#calls .hit:hover, #calls .hit:focus { fill: var(--text); fill-opacity: .06; outline: none; }
+#calls svg, #bDaily svg { display: block; width: 100%; height: 240px; overflow: visible; }
+#calls .axis text, #bDaily .axis text { fill: var(--text-3); font-size: 11px; }
+#calls .gridline, #bDaily .gridline { stroke: var(--grid); stroke-width: 1; }
+#calls .hit, #bDaily .hit { fill: transparent; }
+#calls .hit:hover, #calls .hit:focus, #bDaily .hit:hover, #bDaily .hit:focus { fill: var(--text); fill-opacity: .06; outline: none; }
 
 #tip {
   position: fixed; pointer-events: none; z-index: 10; background: var(--card); color: var(--text);
@@ -256,6 +267,10 @@ footer { color: var(--text-3); font-size: 12px; margin-top: 8px; }
       </div>
     </div>
     <div class="actions">
+      <div class="seg" id="modeSeg" role="group" aria-label="View">
+        <button type="button" data-mode="sessions" aria-pressed="true" title="Pick sessions and get an itemized bill">Sessions</button>
+        <button type="button" data-mode="burn" aria-pressed="false" title="Where all your money went: by day, project, model and activity">Burn</button>
+      </div>
       <span class="source" id="source"></span>
       <button class="btn" id="btnFolder" type="button">Load folder</button>
       <button class="btn live" id="btnLive" type="button" aria-pressed="false" title="Watch costs climb as your sessions run">Live Track</button>
@@ -374,6 +389,55 @@ footer { color: var(--text-3); font-size: 12px; margin-top: 8px; }
       <footer>Tokenomicon runs entirely on your machine. Your transcripts never go anywhere.</footer>
     </section>
   </main>
+
+  <main id="burn" class="burn" hidden>
+    <div class="card burnbar">
+      <div>
+        <h2>Burn report</h2>
+        <p class="hint" id="bSummary" style="margin:0"></p>
+      </div>
+      <div class="bctl">
+        <div class="seg" id="bRange" role="group" aria-label="Date range">
+          <button type="button" data-days="1">24h</button>
+          <button type="button" data-days="7">7d</button>
+          <button type="button" data-days="30" aria-pressed="true">30d</button>
+          <button type="button" data-days="0">All</button>
+        </div>
+        <select id="bProject" aria-label="Project"></select>
+        <select id="bModel" aria-label="Model"></select>
+      </div>
+    </div>
+    <div class="livebar" id="bLive" role="status" aria-live="polite" hidden></div>
+    <div class="kpis" id="bKpis"></div>
+    <div class="card">
+      <h2 id="bDailyTitle">Spend per day</h2>
+      <p class="hint">Stacked by token type. Hover a bar for the receipt.</p>
+      <div class="legend" id="bLegend"></div>
+      <div id="bDaily"></div>
+    </div>
+    <div class="burn-grid">
+      <div class="card wide">
+        <h2>Where it went</h2>
+        <p class="hint">Every message you sent, sorted by what Claude did to answer it (best-guess heuristics, not gospel). One-shot means Claude made its edits without a fail-and-retry loop and your next message wasn't "still broken".</p>
+        <div class="tablewrap"><table id="bActivity"></table></div>
+      </div>
+      <div class="card">
+        <h2>By project</h2>
+        <p class="hint">Click a project to filter everything to it.</p>
+        <div class="tablewrap"><table id="bProjects"></table></div>
+      </div>
+      <div class="card">
+        <h2>By model</h2>
+        <p class="hint">Local and non-Claude models count as $0.</p>
+        <div class="tablewrap"><table id="bModels"></table></div>
+      </div>
+      <div class="card wide">
+        <h2>Priciest sessions</h2>
+        <p class="hint">Click one to open its itemized bill in Sessions.</p>
+        <div class="tablewrap"><table id="bTop"></table></div>
+      </div>
+    </div>
+  </main>
 </div>
 <div id="tip" role="status" aria-live="polite"></div>
 
@@ -413,6 +477,7 @@ const PRICING = [
   { key: "3-5-haiku",  name: "Haiku 3.5",  in: 0.80, out: 4 },
 ];
 const FALLBACK_PRICE = PRICING.find(p => p.key === "opus-5-5");
+let ACTIVITIES = ["Coding", "Debugging", "Refactoring", "Testing", "Docs", "Exploration", "Planning", "Git & PRs", "Build & deploy", "Delegation", "Conversation"];
 const FAST_MULTIPLIER = 2;
 const WEB_SEARCH_USD = 0.01;
 const IDLE_GAP_MS = 5 * 60 * 1000;
@@ -423,7 +488,10 @@ function priceFor(model) {
   const m = String(model || "").toLowerCase();
   let best = null;
   for (const p of PRICING) if (m.includes(p.key) && (!best || p.key.length > best.key.length)) best = p;
-  const res = best ? { ...best, known: true } : { ...FALLBACK_PRICE, name: model || "unknown", known: false };
+  // Unknown Claude model: assume flagship pricing. Anything else (a local GGUF, Ollama, a proxy's test model) is free.
+  const res = best ? { ...best, known: true }
+    : /claude|anthropic|opus|sonnet|haiku|fable/.test(m) ? { ...FALLBACK_PRICE, name: model, known: false }
+    : { key: "", name: (model || "unknown") + " (local)", in: 0, out: 0, cr: 0, known: false, local: true };
   if (res.cr == null) res.cr = res.in * 0.1;
   priceCache.set(model, res);
   return res;
@@ -510,6 +578,146 @@ function addInto(a, b) { for (const k in b) a[k] = (a[k] || 0) + b[k]; return a;
 const sumCost = c => c.inp + c.cw5 + c.cw1 + c.cr + c.out + c.web;
 
 // Turns raw transcript objects into session summaries with per-call detail.
+// One API call, priced. Local or non-Claude models (Ollama, GGUF and friends) cost you nothing, so they're $0.
+function priceCall(ts, rawModel, tok, fast, side) {
+  const p = priceFor(rawModel);
+  const mult = fast ? FAST_MULTIPLIER : 1;
+  const cost = {
+    inp: tok.inp * p.in / 1e6 * mult,
+    cw5: tok.cw5 * p.in * 1.25 / 1e6 * mult,
+    cw1: tok.cw1 * p.in * 2 / 1e6 * mult,
+    cr: tok.cr * p.cr / 1e6 * mult,
+    out: tok.out * p.out / 1e6 * mult,
+    web: p.local ? 0 : tok.web * WEB_SEARCH_USD,
+  };
+  return { ts, model: p.name, known: p.known, local: !!p.local, rawModel, side: !!side, fast: mult > 1, tok, cost, total: sumCost(cost), saved: tok.cr * (p.in - p.cr) / 1e6 * mult };
+}
+
+// Totals, per-model rollups and turn costs for one session whose calls are already priced and sorted.
+function finalizeSession(b) {
+  const clean = t => t ? String(t).replace(/\s+/g, " ").trim() : "";
+  const tok = zeroTok(), cost = zeroCost(), byModel = {};
+  let saved = 0;
+  for (const c of b.calls) {
+    addInto(tok, c.tok); addInto(cost, c.cost); saved += c.saved;
+    const m = byModel[c.model] || (byModel[c.model] = { calls: 0, tok: zeroTok(), cost: zeroCost(), total: 0 });
+    m.calls++; addInto(m.tok, c.tok); addInto(m.cost, c.cost); m.total += c.total;
+  }
+  const primary = Object.entries(byModel).sort((x, y) => y[1].total - x[1].total || y[1].calls - x[1].calls)[0][0];
+  const cwd = b.cwd || "";
+  const project = cwd ? cwd.replace(/[\\/]+$/, "").split(/[\\/]/).pop() : (b.hint || "unknown");
+  const prompt = b.prompt || "";
+  const turns = (b.turns || []).map(([a, z, cat, one]) => {
+    let total = 0;
+    for (let i = a; i <= z && i < b.calls.length; i++) total += b.calls[i].total;
+    return { a, z, cat, one, ts: b.calls[a] ? b.calls[a].ts : b.start, total };
+  });
+  return {
+    id: b.id, project, cwd, prompt,
+    title: clean(b.custom) || clean(b.ai) || clean(b.summary) || prompt || "Untitled session in " + project,
+    titleSource: b.custom ? "renamed" : b.ai ? "ai" : b.summary ? "summary" : prompt ? "prompt" : "none",
+    start: b.start, end: b.end, wall: b.end - b.start, active: b.active,
+    tok, cost, total: sumCost(cost), byModel, primary, calls: b.calls, saved, turns, hasTurns: !!b.turns,
+    cc: b.ccRuns ? [...b.ccRuns.values()].reduce((a, r) => ({ cost: a.cost + r.cost, api: a.api + r.api, tool: a.tool + r.tool }), { cost: 0, api: 0, tool: 0 }) : null,
+    unknown: [...new Set(b.calls.filter(c => !c.known).map(c => c.rawModel))],
+    search: null,
+  };
+}
+
+// The collector's compact format: tokenomicon.py already deduped, split and classified everything, so this is just pricing.
+function sessionsFromCompact(d) {
+  if (!d || !Array.isArray(d.sessions)) return [];
+  const models = d.models || [];
+  if (Array.isArray(d.activities)) ACTIVITIES = d.activities;
+  const out = [];
+  for (const s of d.sessions) {
+    const calls = (s.calls || []).map(r => {
+      const tok = { inp: r[2], cw5: r[3], cw1: r[4], cr: r[5], out: r[6], think: r[7], web: r[8] };
+      return priceCall(s.start + r[0], models[r[1]], tok, r[9] & 1, r[9] & 2);
+    });
+    if (!calls.length) continue;
+    out.push(indexSearch(finalizeSession({ ...s, calls })));
+  }
+  return out.sort((a, b) => b.start - a.start);
+}
+
+/* ---------- activity heuristics (same rules as tokenomicon.py, for Load folder and Demo data) ---------- */
+const BASH_TAGS = [
+  ["test", /\b(pytest|jest|vitest|mocha|go test|cargo test|npm (run )?test|pnpm (run )?test|yarn test|bun test|unittest|rspec|phpunit|ctest)\b/],
+  ["git", /\b(git|gh)\s/],
+  ["build", /\b(npm run build|pnpm (run )?build|yarn build|cargo build|go build|make\b|tsc\b|vite build|xcodebuild|swiftc|docker|deploy|vercel|firebase|netlify|wrangler|release|publish|brew)/],
+  ["install", /\b(npm (i|install|ci)|pnpm (i|install|add)|yarn add|pip3? install|uv (pip|add|sync)|cargo add|brew install)\b/],
+];
+const EDIT_TOOLS = new Set(["Edit", "Write", "MultiEdit", "NotebookEdit"]);
+const EXPLORE_TOOLS = new Set(["Read", "Grep", "Glob", "LS", "WebFetch", "WebSearch", "NotebookRead"]);
+const DOC_EXTS = new Set([".md", ".mdx", ".txt", ".rst"]);
+const wordsRx = w => new RegExp("\\b(" + w.join("|") + ")\\b", "i");
+const DEBUG_RX = wordsRx(["fix", "fixes", "bug", "bugs", "error", "errors", "broken", "crash", "crashes", "fails", "failing", "failed",
+  "issue", "doesn't work", "does not work", "not working", "wrong", "debug", "stack ?trace", "exception", "regression"]);
+const REFACTOR_RX = wordsRx(["refactor", "clean ?up", "cleanup", "rename", "simplify", "reorganize", "restructure", "extract", "dedupe", "tidy"]);
+const PLAN_RX = wordsRx(["plan", "design", "approach", "architecture", "should we", "should i", "how would", "strategy", "roadmap", "options", "trade-?offs?", "spec"]);
+const TEST_RX = wordsRx(["test", "tests", "testing", "coverage"]);
+const GIT_RX = wordsRx(["commit", "push", "pr", "pull request", "merge", "rebase", "branch", "cherry-pick"]);
+const RETRY_RX = wordsRx(["still", "again", "doesn't work", "didn't work", "does not work", "not working", "nope", "wrong", "broken",
+  "same error", "try again", "that's not", "undo", "revert", "didn't fix", "not fixed", "still broken"]);
+function toolTags(content) {
+  if (!Array.isArray(content)) return null;
+  const tags = [];
+  for (const b of content) {
+    if (!b || b.type !== "tool_use") continue;
+    const name = String(b.name || "?"), inp = b.input && typeof b.input === "object" ? b.input : {};
+    if (name === "Bash") { const cmd = String(inp.command || ""); const k = BASH_TAGS.find(([, rx]) => rx.test(cmd)); tags.push(k ? "Bash:" + k[0] : "Bash"); }
+    else if (EDIT_TOOLS.has(name)) { const m = String(inp.file_path || inp.notebook_path || "").match(/(\.[^./\\]+)$/); tags.push(m ? name + ":" + m[1].toLowerCase() : name); }
+    else tags.push(name);
+  }
+  return tags.length ? tags : null;
+}
+function classify(prompt, tags) {
+  const p = prompt || "";
+  const names = new Set(tags.map(t => t.split(":")[0]));
+  const bash = new Set(tags.filter(t => t.startsWith("Bash:")).map(t => t.slice(5)));
+  const edits = tags.filter(t => EDIT_TOOLS.has(t.split(":")[0]));
+  if (!tags.length) return PLAN_RX.test(p) ? "Planning" : "Conversation";
+  if (edits.length) {
+    if (DEBUG_RX.test(p)) return "Debugging";
+    if (REFACTOR_RX.test(p)) return "Refactoring";
+    const exts = new Set(edits.map(t => t.includes(":") ? t.split(":")[1] : ""));
+    if ([...exts].every(e => DOC_EXTS.has(e))) return "Docs";
+    if (bash.has("test") && TEST_RX.test(p)) return "Testing";
+    return "Coding";
+  }
+  if (bash.has("git") || (GIT_RX.test(p) && [...names].every(n => ["Bash", "Read", "Grep", "Glob"].includes(n)))) return "Git & PRs";
+  if (bash.has("build") || bash.has("install")) return "Build & deploy";
+  if (bash.has("test")) return "Testing";
+  if (DEBUG_RX.test(p)) return "Debugging";
+  if (names.has("Agent") || names.has("Task")) return "Delegation";
+  if ([...names].some(n => EXPLORE_TOOLS.has(n)) || names.has("Bash")) return "Exploration";
+  return PLAN_RX.test(p) ? "Planning" : "Conversation";
+}
+// Split a session's calls into turns (one per prompt you typed) and classify each. calls: sorted, each with .tags.
+function buildTurns(calls, prompts, errs, start) {
+  const bounds = prompts.slice();
+  if (!prompts.length || calls[0].ts < prompts[0][0]) bounds.unshift([start, null]);
+  bounds.push([Infinity, null]);
+  const turns = [];
+  let ci = 0;
+  for (let b = 0; b < bounds.length - 1; b++) {
+    const [t0, prompt] = bounds[b], [t1, nxt] = bounds[b + 1], first = ci;
+    while (ci < calls.length && calls[ci].ts < t1) ci++;
+    if (ci === first) continue;
+    const tc = calls.slice(first, ci), tags = tc.flatMap(c => c.tags);
+    const cat = classify(prompt, tags);
+    const edited = tc.filter(c => c.tags.some(g => EDIT_TOOLS.has(g.split(":")[0]))).map(c => c.ts);
+    let one = -1;
+    if (edited.length) {
+      const retried = errs.some(e => e >= t0 && e < t1 && edited.some(x => e < x));
+      one = retried || (nxt && RETRY_RX.test(nxt)) ? 0 : 1;
+    }
+    turns.push([first, ci - 1, Math.max(0, ACTIVITIES.indexOf(cat)), one]);
+  }
+  return turns;
+}
+
 function buildSessions(objs, fileHints) {
   const calls = new Map();
   const sess = new Map();
@@ -543,23 +751,31 @@ function buildSessions(objs, fileHints) {
     const s = getS(o.sessionId, fileHints ? fileHints[i] : null);
     s.times.push(ts);
     if (!s.cwd && o.cwd) s.cwd = o.cwd;
-    if (o.type === "user" && !o.isSidechain && !o.isMeta && o.message) {
-      const t = cleanPrompt(textOf(o.message.content));
-      if (t && ts < s.promptTs) { s.prompt = t.slice(0, 200); s.promptTs = ts; }
+    if (o.type === "user" && o.message) {
+      const content = o.message.content;
+      if (Array.isArray(content) && content.some(b => b && b.type === "tool_result" && b.is_error)) (s.errs = s.errs || []).push(ts);
+      if (!o.isSidechain && !o.isMeta) {
+        const t = cleanPrompt(textOf(content));
+        if (t) (s.prompts = s.prompts || []).push([ts, t.slice(0, 400)]);
+        if (t && ts < s.promptTs) { s.prompt = t.slice(0, 200); s.promptTs = ts; }
+      }
     }
     if (o.type === "assistant" && o.message && o.message.usage) {
       const model = o.message.model;
       if (!model || model === "<synthetic>") continue;
-      const id = o.message.id || o.requestId || o.uuid;
+      const id = o.sessionId + "|" + (o.message.id || o.requestId || o.uuid);
       const u = o.message.usage;
-      const prev = calls.get(id);
-      if (prev && (prev.u.output_tokens || 0) >= (u.output_tokens || 0)) continue;
-      calls.set(id, { sid: o.sessionId, ts: prev ? prev.ts : ts, model, u, side: !!o.isSidechain });
+      const prev = calls.get(id), tags = toolTags(o.message.content) || [];
+      if (prev) { // one line per content block, each repeating the usage: merge the tools, keep the fullest usage
+        prev.tags.push(...tags);
+        if ((u.output_tokens || 0) > (prev.u.output_tokens || 0)) prev.u = u;
+        continue;
+      }
+      calls.set(id, { sid: o.sessionId, ts, model, u, side: !!o.isSidechain, tags });
     }
   }
   for (const c of calls.values()) {
     const s = sess.get(c.sid);
-    const p = priceFor(c.model);
     const u = c.u;
     const tok = zeroTok();
     tok.inp = u.input_tokens || 0; tok.out = u.output_tokens || 0; tok.cr = u.cache_read_input_tokens || 0;
@@ -571,19 +787,11 @@ function buildSessions(objs, fileHints) {
     } else tok.cw5 = cwTotal;
     tok.think = (u.output_tokens_details && u.output_tokens_details.thinking_tokens) || 0;
     tok.web = (u.server_tool_use && u.server_tool_use.web_search_requests) || 0;
-    const mult = u.speed === "fast" ? FAST_MULTIPLIER : 1;
-    const cost = {
-      inp: tok.inp * p.in / 1e6 * mult,
-      cw5: tok.cw5 * p.in * 1.25 / 1e6 * mult,
-      cw1: tok.cw1 * p.in * 2 / 1e6 * mult,
-      cr: tok.cr * p.cr / 1e6 * mult,
-      out: tok.out * p.out / 1e6 * mult,
-      web: tok.web * WEB_SEARCH_USD,
-    };
-    (s.calls = s.calls || []).push({ ts: c.ts, model: p.name, known: p.known, rawModel: c.model, side: c.side, fast: mult > 1, tok, cost, total: sumCost(cost), saved: tok.cr * (p.in - p.cr) / 1e6 * mult });
+    const call = priceCall(c.ts, c.model, tok, u.speed === "fast", c.side);
+    call.tags = c.tags;
+    (s.calls = s.calls || []).push(call);
   }
   for (const o of summaries) { const s = sess.get(uuidSess.get(o.leafUuid)); if (s) s.summary = o.summary; }
-  const clean = t => t ? String(t).replace(/\s+/g, " ").trim() : "";
   const out = [];
   for (const s of sess.values()) {
     if (!s.calls || !s.calls.length) continue;
@@ -591,26 +799,11 @@ function buildSessions(objs, fileHints) {
     s.times.sort((a, b) => a - b);
     let active = 0;
     for (let i = 1; i < s.times.length; i++) { const g = s.times[i] - s.times[i - 1]; if (g <= IDLE_GAP_MS) active += g; }
-    const tok = zeroTok(), cost = zeroCost(), byModel = {};
-    let saved = 0;
-    for (const c of s.calls) {
-      addInto(tok, c.tok); addInto(cost, c.cost); saved += c.saved;
-      const m = byModel[c.model] || (byModel[c.model] = { calls: 0, tok: zeroTok(), cost: zeroCost(), total: 0 });
-      m.calls++; addInto(m.tok, c.tok); addInto(m.cost, c.cost); m.total += c.total;
-    }
-    const primary = Object.entries(byModel).sort((a, b) => b[1].total - a[1].total)[0][0];
-    const cwd = s.cwd || "";
-    const project = cwd ? cwd.replace(/[\\/]+$/, "").split(/[\\/]/).pop() : (s.hint || "unknown");
-    const end = s.times[s.times.length - 1];
-    out.push({
-      id: s.id, project, cwd, prompt: s.prompt || "",
-      title: clean(s.customTitle) || clean(s.aiTitle) || clean(s.summary) || s.prompt || "Untitled session in " + project,
-      titleSource: s.customTitle ? "renamed" : s.aiTitle ? "ai" : s.summary ? "summary" : s.prompt ? "prompt" : "none", start: s.times[0], end, wall: end - s.times[0], active,
-      tok, cost, total: sumCost(cost), byModel, primary, calls: s.calls, saved,
-      cc: s.ccRuns ? [...s.ccRuns.values()].reduce((a, r) => ({ cost: a.cost + r.cost, api: a.api + r.api, tool: a.tool + r.tool }), { cost: 0, api: 0, tool: 0 }) : null,
-      unknown: [...new Set(s.calls.filter(c => !c.known).map(c => c.rawModel))],
-      search: null,
-    });
+    const prompts = (s.prompts || []).sort((a, b) => a[0] - b[0]);
+    const turns = buildTurns(s.calls, prompts, s.errs || [], s.times[0]);
+    for (const c of s.calls) delete c.tags;
+    out.push(finalizeSession({ id: s.id, cwd: s.cwd, hint: s.hint, prompt: s.prompt, custom: s.customTitle, ai: s.aiTitle, summary: s.summary,
+      start: s.times[0], end: s.times[s.times.length - 1], active, calls: s.calls, turns, ccRuns: s.ccRuns }));
   }
   for (const s of out) indexSearch(s);
   out.sort((a, b) => b.start - a.start);
@@ -687,6 +880,20 @@ function makeDemo() {
     "Convert class component to hooks", "Test invoice calculator", "Set up lint and test CI", "Move cron job to queue worker",
     "Rename data2 variables", "Write CLI README", "Triage 3am pager alert",
   ];
+  // which tools Claude reaches for on each prompt (same order), so Burn mode has activities to sort
+  const E = ext => ["Edit", { file_path: "src/thing" + ext }], W = ext => ["Write", { file_path: "docs/thing" + ext }], B = cmd => ["Bash", { command: cmd }];
+  const R = ["Read", { file_path: "src/x.ts" }], G = ["Grep", { pattern: "leak" }], A = ["Agent", { prompt: "dig" }];
+  const tools = [
+    [E(".ts"), B("npx jest auth"), R], [B("npm run build"), R, G], [E(".ts"), R], [E(".sql"), R], [],
+    [E(".css"), R], [E(".ts"), R, B("npm test")], [R, G, B("ps aux")], [E(".tsx"), R], [E(".test.ts"), B("npx jest invoice")],
+    [E(".yml"), R], [E(".ts"), A, R], [E(".py"), G], [W(".md"), R], [R, G, B("kubectl logs api")],
+  ];
+  const followups = [
+    ["still failing, same error", [E(".ts"), B("npx jest")]], ["nice, now commit and push this", [B("git commit -am wip"), B("git push")]],
+    ["can you clean up that function", [E(".ts"), R]], ["what's the plan for the next part?", []],
+    ["try again, that didn't fix it", [E(".ts"), R]], ["write it up in the README", [E(".md")]],
+    ["ship it to staging", [B("npm run build"), B("vercel deploy")]], ["ok now add tests for that", [E(".test.ts"), B("npm test")]],
+  ];
   const renames = ["auth hell", "THE memory leak", "friday deploy cleanup", "pager duty postmortem"];
   const models = [["claude-opus-5-5", 55], ["claude-sonnet-5-5", 28], ["claude-haiku-5-5", 9], ["claude-fable-5-2", 8]];
   const now = Date.now();
@@ -707,8 +914,10 @@ function makeDemo() {
     objs.push({ type: "user", sessionId: sid, timestamp: new Date(t).toISOString(), cwd, message: { role: "user", content: prompts[pi] } });
     if (rnd() < 0.85) objs.push({ type: "ai-title", aiTitle: aiTitles[pi], sessionId: sid });
     if (rnd() < 0.08) objs.push({ type: "custom-title", customTitle: pick(renames), sessionId: sid });
+    let prof = tools[pi];
     for (let k = 0; k < turns; k++) {
       t += 4000 + rnd() * 70000;
+      if (k > 2 && rnd() < 0.08) { const [fp, ft] = pick(followups); prof = ft; objs.push({ type: "user", sessionId: sid, timestamp: new Date(t).toISOString(), cwd, message: { role: "user", content: fp } }); t += 3000; }
       if (rnd() < 0.05) t += 20 * 60e3 + rnd() * 60 * 60e3;
       const out = Math.floor(150 + rnd() * rnd() * 5000);
       const write = Math.floor(500 + rnd() * 6000);
@@ -722,10 +931,11 @@ function makeDemo() {
       };
       ctx += write + Math.floor(out * 0.6);
       const id = "msg_demo_" + (n++);
-      const line = { type: "assistant", sessionId: sid, timestamp: new Date(t).toISOString(), cwd, isSidechain: rnd() < 0.12, message: { id, model, role: "assistant", usage } };
+      const content = prof.length && rnd() < 0.6 ? [(([name, input]) => ({ type: "tool_use", name, input }))(pick(prof))] : [{ type: "text", text: "..." }];
+      const line = { type: "assistant", sessionId: sid, timestamp: new Date(t).toISOString(), cwd, isSidechain: rnd() < 0.12, message: { id, model, role: "assistant", content, usage } };
       objs.push(line);
       if (rnd() < 0.3) objs.push(line); // same message, several content blocks: must not double count
-      if (rnd() < 0.6) { t += 2000 + rnd() * 30000; objs.push({ type: "user", sessionId: sid, timestamp: new Date(t).toISOString(), cwd, message: { role: "user", content: [{ type: "tool_result", content: "ok" }] } }); }
+      if (rnd() < 0.6) { t += 2000 + rnd() * 30000; objs.push({ type: "user", sessionId: sid, timestamp: new Date(t).toISOString(), cwd, message: { role: "user", content: [{ type: "tool_result", content: "ok", is_error: rnd() < 0.06 }] } }); }
     }
   }
   return objs;
@@ -747,10 +957,158 @@ function load(sessions, label, keepSelection) {
   state.project = ""; state.limit = 150;
   fillProjects();
   document.getElementById("empty").hidden = sessions.length > 0;
-  document.getElementById("app").hidden = sessions.length === 0;
+  showMode();
   document.getElementById("source").textContent = label;
   renderList();
   renderDetail();
+}
+
+/* ---------- modes ---------- */
+// Sessions: pick some, get an itemized bill. Burn: the CodeBurn-style overview of everything.
+const MODE_KEY = "tokenomicon-mode";
+let mode = "sessions";
+function showMode() {
+  const has = state.sessions.length > 0;
+  document.getElementById("app").hidden = !has || mode !== "sessions";
+  document.getElementById("burn").hidden = !has || mode !== "burn";
+  document.querySelectorAll("#modeSeg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+  if (has && mode === "burn") renderBurn();
+}
+function setMode(m) {
+  mode = m === "burn" ? "burn" : "sessions";
+  try { localStorage.setItem(MODE_KEY, mode); } catch {}
+  showMode();
+  if (mode === "sessions" && state.sessions.length) { renderList(); renderDetail(); }
+}
+
+/* ---------- burn ---------- */
+const burn = { days: 30, project: "", model: "" };
+const CLOUD_CAT = -1, RAW_CAT = -2;
+const catName = c => c === CLOUD_CAT ? "Cloud sessions (totals only)" : c === RAW_CAT ? "Unsorted (loaded from raw files)" : ACTIVITIES[c] || "Other";
+const shareCell = (v, total) => el("td", { class: "r num" }, pct(v, total) + "%", el("span", { class: "share" }, el("b", { style: "width:" + (total ? Math.max(1, v / total * 100) : 0) + "%" })));
+
+function burnRows() {
+  const cutoff = burn.days ? Date.now() - burn.days * 864e5 : -Infinity;
+  const rows = [], turns = [];
+  for (const s of state.sessions) {
+    if (burn.project && s.project !== burn.project) continue;
+    if (s.cloud) {
+      if (s.start >= cutoff && (!burn.model || s.primary === burn.model)) rows.push({ s, ts: s.start, model: s.primary, tok: s.tok, cost: s.cost, total: s.total, saved: s.saved, cat: CLOUD_CAT });
+      continue;
+    }
+    const catOf = new Array(s.calls.length).fill(RAW_CAT);
+    for (const t of s.turns) for (let i = t.a; i <= t.z && i < catOf.length; i++) catOf[i] = t.cat;
+    s.calls.forEach((c, i) => {
+      if (c.ts >= cutoff && (!burn.model || c.model === burn.model)) rows.push({ s, ts: c.ts, model: c.model, tok: c.tok, cost: c.cost, total: c.total, saved: c.saved, cat: catOf[i], call: true });
+    });
+    for (const t of s.turns) {
+      if (t.ts < cutoff) continue;
+      if (burn.model && !s.calls.slice(t.a, t.z + 1).some(c => c.model === burn.model)) continue;
+      turns.push(t);
+    }
+  }
+  return { rows, turns, cutoff };
+}
+
+function fillBurnFilters() {
+  const projects = [...new Set(state.sessions.map(s => s.project))].sort((a, b) => a.localeCompare(b));
+  const models = [...new Set(state.sessions.flatMap(s => Object.keys(s.byModel)))].sort();
+  const bp = document.getElementById("bProject"), bm = document.getElementById("bModel");
+  if (burn.project && !projects.includes(burn.project)) burn.project = "";
+  if (burn.model && !models.includes(burn.model)) burn.model = "";
+  bp.replaceChildren(el("option", { value: "" }, "All projects"), ...projects.map(p => el("option", { value: p }, p)));
+  bm.replaceChildren(el("option", { value: "" }, "All models"), ...models.map(m => el("option", { value: m }, m)));
+  bp.value = burn.project; bm.value = burn.model;
+}
+
+function renderBurn() {
+  fillBurnFilters();
+  document.querySelectorAll("#bRange button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.days === burn.days)));
+  const { rows, turns } = burnRows();
+  const tok = zeroTok(), cost = zeroCost();
+  let saved = 0, calls = 0;
+  const sess = new Set();
+  for (const r of rows) { addInto(tok, r.tok); addInto(cost, r.cost); saved += r.saved; if (r.call) calls++; sess.add(r.s); }
+  const total = sumCost(cost);
+  const inTok = tok.inp + tok.cw5 + tok.cw1 + tok.cr, allTok = inTok + tok.out;
+  const edits = turns.filter(t => t.one >= 0), ones = edits.filter(t => t.one === 1).length;
+  const span = burn.days === 1 ? "the last 24 hours" : burn.days ? "the last " + burn.days + " days" : "all time";
+  document.getElementById("bSummary").textContent = [span, burn.project || "every project", burn.model || "every model"].join(" · ");
+
+  // KPIs
+  const firstTs = rows.length ? Math.min(...rows.map(r => r.ts)) : Date.now();
+  const nDays = burn.days || Math.max(1, Math.ceil((Date.now() - firstTs) / 864e5));
+  const tiles = [
+    ["Spend", fmtUSD(total), fmtUSD(total / nDays) + " a day on average", true],
+    ["Sessions", nf0.format(sess.size), nf0.format(calls) + " API calls"],
+    ["Tokens", fmtTok(allTok), fmtTok(tok.out) + " of them output"],
+    ["Cache hit rate", pct(tok.cr, inTok) + "%", "caching saved you " + fmtUSD(saved)],
+    ["One-shot rate", edits.length ? pct(ones, edits.length) + "%" : "n/a", edits.length ? ones + " of " + edits.length + " edit turns" : "no edit turns in view"],
+    ["Avg per message", turns.length ? fmtUSD4(turns.reduce((a, t) => a + t.total, 0) / turns.length) : "n/a", nf0.format(turns.length) + " things you asked for"],
+  ];
+  document.getElementById("bKpis").replaceChildren(...tiles.map(([l, v, sub, hero]) => el("div", { class: "kpi" + (hero ? " hero" : "") }, el("div", { class: "label" }, l), el("div", { class: "value num" }, v), el("div", { class: "sub" }, sub))));
+
+  // spend over time: hourly for 24h, daily up to ~3 months, weekly beyond that
+  const hourly = burn.days === 1;
+  const start = hourly ? Date.now() - 864e5 : (burn.days ? Date.now() - burn.days * 864e5 : firstTs);
+  const weekly = !hourly && (Date.now() - start) / 864e5 > 92;
+  const step = hourly ? 36e5 : weekly ? 7 * 864e5 : 864e5;
+  const floor = t => { const d = new Date(t); if (hourly) d.setMinutes(0, 0, 0); else { d.setHours(0, 0, 0, 0); if (weekly) d.setDate(d.getDate() - d.getDay()); } return d.getTime(); };
+  const buckets = new Map();
+  for (let t = floor(start); t <= Date.now(); t = floor(t + step + 36e5 * (hourly ? 0 : 2))) buckets.set(t, { tok: zeroTok(), cost: zeroCost(), n: 0 });
+  for (const r of rows) { const b = buckets.get(floor(r.ts)); if (b) { addInto(b.tok, r.tok); addInto(b.cost, r.cost); b.n++; } }
+  const fmtB = t => hourly ? new Date(t).toLocaleTimeString(undefined, { hour: "numeric" }) : new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const items = [...buckets.entries()].map(([t, b]) => ({ label: (weekly ? "Week of " : "") + fmtB(t), sub: b.n + (b.n === 1 ? " API call" : " API calls"), tok: b.tok, cost: b.cost, total: sumCost(b.cost) }));
+  document.getElementById("bDailyTitle").textContent = hourly ? "Spend per hour" : weekly ? "Spend per week" : "Spend per day";
+  document.getElementById("bLegend").replaceChildren(...MIX.map(m => el("span", null, el("i", { style: "background:var(" + m.color + ")" }), m.label)));
+  drawStack(document.getElementById("bDaily"), items, i => fmtB([...buckets.keys()][i]), document.getElementById("bDailyTitle").textContent);
+
+  // activity
+  const byCat = new Map();
+  const getCat = c => byCat.get(c) || byCat.set(c, { cost: 0, turns: 0, edits: 0, ones: 0 }).get(c);
+  for (const r of rows) getCat(r.cat).cost += r.total;
+  for (const t of turns) { const c = getCat(t.cat); c.turns++; if (t.one >= 0) { c.edits++; c.ones += t.one; } }
+  const cats = [...byCat.entries()].filter(([, v]) => v.cost > 0 || v.turns > 0).sort((a, b) => b[1].cost - a[1].cost);
+  document.getElementById("bActivity").replaceChildren(
+    el("thead", null, el("tr", null, ...["Activity", "Messages", "Cost", "Share", "Per message", "One-shot"].map((h, i) => el("th", { class: i ? "r" : "" }, h)))),
+    el("tbody", null, ...cats.map(([c, v]) => el("tr", null,
+      el("td", null, catName(c)), el("td", { class: "r num" }, v.turns ? nf0.format(v.turns) : "-"), el("td", { class: "r num" }, fmtUSD(v.cost)), shareCell(v.cost, total),
+      el("td", { class: "r num" }, v.turns ? fmtUSD4(v.cost / v.turns) : "-"), el("td", { class: "r num" }, v.edits ? pct(v.ones, v.edits) + "%" : "-")))));
+
+  // projects
+  const byProj = new Map();
+  for (const r of rows) { const p = byProj.get(r.s.project) || byProj.set(r.s.project, { cost: 0, tok: 0, sess: new Set() }).get(r.s.project); p.cost += r.total; p.tok += r.tok.inp + r.tok.cw5 + r.tok.cw1 + r.tok.cr + r.tok.out; p.sess.add(r.s); }
+  document.getElementById("bProjects").replaceChildren(
+    el("thead", null, el("tr", null, ...["Project", "Sessions", "Tokens", "Cost", "Share"].map((h, i) => el("th", { class: i ? "r" : "" }, h)))),
+    el("tbody", null, ...[...byProj.entries()].sort((a, b) => b[1].cost - a[1].cost).map(([name, v]) => {
+      const tr = el("tr", { class: "click", tabindex: 0, title: "Filter to " + name },
+        el("td", { class: "title" }, name), el("td", { class: "r num" }, nf0.format(v.sess.size)), el("td", { class: "r num" }, fmtTok(v.tok)), el("td", { class: "r num" }, fmtUSD(v.cost)), shareCell(v.cost, total));
+      const go = () => { burn.project = burn.project === name ? "" : name; renderBurn(); };
+      tr.addEventListener("click", go); tr.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+      return tr;
+    })));
+
+  // models
+  const byModel = new Map();
+  for (const r of rows) { const m = byModel.get(r.model) || byModel.set(r.model, { cost: 0, tok: 0, calls: 0 }).get(r.model); m.cost += r.total; m.tok += r.tok.inp + r.tok.cw5 + r.tok.cw1 + r.tok.cr + r.tok.out; if (r.call) m.calls++; }
+  document.getElementById("bModels").replaceChildren(
+    el("thead", null, el("tr", null, ...["Model", "API calls", "Tokens", "Cost", "Share"].map((h, i) => el("th", { class: i ? "r" : "" }, h)))),
+    el("tbody", null, ...[...byModel.entries()].sort((a, b) => b[1].cost - a[1].cost || b[1].tok - a[1].tok).map(([name, v]) => el("tr", null,
+      el("td", null, name), el("td", { class: "r num" }, v.calls ? nf0.format(v.calls) : "-"), el("td", { class: "r num" }, fmtTok(v.tok)), el("td", { class: "r num" }, fmtUSD(v.cost)), shareCell(v.cost, total)))));
+
+  // priciest sessions
+  const bySess = new Map();
+  for (const r of rows) bySess.set(r.s, (bySess.get(r.s) || 0) + r.total);
+  document.getElementById("bTop").replaceChildren(
+    el("thead", null, el("tr", null, ...["Session", "Project", "Started", "Cost"].map((h, i) => el("th", { class: i === 3 ? "r" : "" }, h)))),
+    el("tbody", null, ...[...bySess.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([s, v]) => {
+      const tr = el("tr", { class: "click", tabindex: 0, title: "Open in Sessions" },
+        el("td", { class: "title" }, s.title), el("td", { class: "title" }, s.project), el("td", { class: "num" }, fmtDateTime(s.start)), el("td", { class: "r num" }, fmtUSD(v)));
+      const go = () => { state.selected = new Set([s.id]); saveSel(); state.q = ""; document.getElementById("q").value = ""; setMode("sessions"); };
+      tr.addEventListener("click", go); tr.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+      return tr;
+    })));
+  renderLiveBar();
 }
 
 function fillProjects() {
@@ -813,15 +1171,28 @@ async function pollLive() {
 
 function applyLive(d) {
   const ids = new Set(d.sessions);
-  const fresh = buildSessions(d.records, d.hints);
+  const fresh = d.data ? sessionsFromCompact(d.data) : buildSessions(d.records, d.hints);
   state.sessions = mergeSessions(fresh, state.sessions.filter(s => s.cloud || !ids.has(s.id)));
   state.byId = new Map(state.sessions.map(s => [s.id, s]));
   fillProjects();
+  if (mode === "burn") { renderBurn(); return; }
   renderList();
   if ([...state.selected].some(id => ids.has(id))) renderDetail(); else renderLiveBar();
 }
 
 function renderLiveBar() {
+  const bb = document.getElementById("bLive");
+  bb.hidden = !live.on;
+  if (live.on) {
+    const delta = state.sessions.reduce((a, s) => a + s.total - (live.base.get(s.id) || 0), 0);
+    const running = state.sessions.filter(isHot).length;
+    const tt = d => d ? new Date(d).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", second: "2-digit" }) : "...";
+    bb.replaceChildren(
+      el("span", null, el("span", { class: "live-dot" }), el("strong", null, "Live")),
+      el("span", null, "+", el("strong", null, delta <= 0 ? "$0.00" : delta < 0.01 ? fmtUSD4(delta) : fmtUSD(delta)), " burned everywhere since " + tt(live.startedAt)),
+      el("span", null, running ? running + (running === 1 ? " session" : " sessions") + " running" : "Nothing running right now"),
+      el("span", null, "checked " + tt(live.checkedAt)));
+  }
   const bar = document.getElementById("liveBar");
   bar.hidden = !live.on;
   if (!live.on) return;
@@ -1019,15 +1390,21 @@ function renderCalls(sel) {
     document.getElementById("callsHint").textContent = "Your selected sessions in time order, stacked by token type. Hover for the receipt.";
     items = sel.map(s => ({ label: fmtDateTime(s.start), sub: s.title.slice(0, 60), tok: s.tok, cost: s.cost, total: s.total }));
   }
+  drawStack(host, items, i => sel.length === 1 ? "#" + (i + 1) : String(i + 1), sel.length === 1 ? "Cost per API call" : "Cost per session");
+}
+
+// Stacked bars by token type with hover receipts. Used for calls, sessions and Burn's spend per day.
+function drawStack(host, items, tickLabel, aria) {
   const W = Math.max(320, host.clientWidth || 800), H = 240, padL = 56, padR = 8, padT = 10, padB = 24;
   const iw = W - padL - padR, ih = H - padT - padB, n = items.length;
+  if (!n) { host.replaceChildren(el("p", { class: "muted" }, "Nothing to chart in this range.")); return; }
   const max = niceMax(Math.max(...items.map(it => it.total), 0));
   const bw = iw / n, gap = bw > 6 ? Math.min(4, bw * 0.25) : 0, barW = Math.max(1, bw - gap);
   const y = v => padT + ih - (v / max) * ih;
   const NS = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", (sel.length === 1 ? "Cost per API call" : "Cost per session") + ", stacked by token type");
+  svg.setAttribute("aria-label", aria + ", stacked by token type");
   const mk = (tag, attrs, parent) => { const node = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v); (parent || svg).appendChild(node); return node; };
   const ax = mk("g", { class: "axis" });
   for (let i = 0; i <= 4; i++) {
@@ -1036,7 +1413,7 @@ function renderCalls(sel) {
     mk("text", { x: padL - 8, y: yy + 4, "text-anchor": "end" }, ax).textContent = v === 0 ? "$0" : fmtUSD4(v).replace(/0+$/, "").replace(/\.$/, "");
   }
   const every = Math.ceil(n / Math.max(2, Math.floor(iw / 56)));
-  items.forEach((it, i) => { if (i % every === 0) mk("text", { x: padL + i * bw + bw / 2, y: H - 6, "text-anchor": "middle" }, ax).textContent = sel.length === 1 ? "#" + (i + 1) : String(i + 1); });
+  items.forEach((it, i) => { if (i % every === 0) mk("text", { x: padL + i * bw + bw / 2, y: H - 6, "text-anchor": "middle" }, ax).textContent = tickLabel(i); });
   const colors = Object.fromEntries(MIX.map(m => [m.k, css(m.color)]));
   const r = Math.min(4, barW / 2);
   items.forEach((it, i) => {
@@ -1079,7 +1456,10 @@ function renderPricing() {
     el("thead", null, el("tr", null, el("th", null, "Model"), el("th", { class: "r" }, "Input"), el("th", { class: "r" }, "Output"), el("th", { class: "r" }, "Cache read"), el("th", { class: "r" }, "Cache write 5m / 1h"))),
     el("tbody", null, ...PRICING.filter(p => used.has(p.name)).map(p => { const cr = p.cr != null ? p.cr : p.in * 0.1; return el("tr", null, el("td", null, p.name), el("td", { class: "r num" }, "$" + p.in), el("td", { class: "r num" }, "$" + p.out), el("td", { class: "r num" }, "$" + +cr.toFixed(3)), el("td", { class: "r num" }, "$" + +(p.in * 1.25).toFixed(3) + " / $" + p.in * 2)); })));
   const unk = [...new Set(state.sessions.flatMap(s => s.unknown))];
-  document.getElementById("unknownModels").textContent = unk.length ? "Unrecognized models (priced as Opus 5.5, so take those numbers with salt): " + unk.join(", ") : "";
+  const local = unk.filter(m => priceFor(m).local), claude = unk.filter(m => !priceFor(m).local);
+  document.getElementById("unknownModels").textContent = [
+    claude.length ? "Unrecognized Claude models (priced as Opus 5.5, so take those numbers with salt): " + claude.join(", ") + "." : "",
+    local.length ? "Local or non-Claude models, counted at $0: " + local.join(", ") + "." : ""].filter(Boolean).join(" ");
 }
 
 /* ---------- CSV ---------- */
@@ -1174,6 +1554,12 @@ function setTheme(t) {
   $("filesInput").onchange = e => loadFiles(e.target.files);
   $("btnDemo").onclick = loadDemo;
   $("btnLive").onclick = () => setLive(!live.on);
+  document.querySelectorAll("#modeSeg button").forEach(b => b.onclick = () => setMode(b.dataset.mode));
+  document.querySelectorAll("#bRange button").forEach(b => b.onclick = () => { burn.days = +b.dataset.days; renderBurn(); });
+  $("bProject").onchange = e => { burn.project = e.target.value; renderBurn(); };
+  $("bModel").onchange = e => { burn.model = e.target.value; renderBurn(); };
+  try { const m = localStorage.getItem(MODE_KEY); if (m === "burn") mode = "burn"; } catch {}
+  if (/[?&]mode=burn\b/.test(location.search)) mode = "burn";
   $("btnDemo2").onclick = loadDemo;
   $("btnTheme").onclick = () => {
     const cur = document.documentElement.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
@@ -1190,14 +1576,14 @@ function setTheme(t) {
   $("selAll").onclick = () => { for (const s of visible()) state.selected.add(s.id); saveSel(); renderList(); renderDetail(); };
   $("selNone").onclick = () => { state.selected.clear(); saveSel(); renderList(); renderDetail(); };
   $("csvBtn").onclick = downloadCSV;
-  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => state.selected.size && renderCalls(selection()), 150); });
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { if (mode === "burn") renderBurn(); else if (state.selected.size) renderCalls(selection()); }, 150); });
   setupDrop();
   const embedded = window.TOKENOMICON_DATA;
-  if (embedded && embedded.records) {
+  if (embedded && (embedded.records || embedded.v === 2)) {
     live.capable = !!embedded.live && /^https?:$/.test(location.protocol);
     live.since = embedded.generatedAt || 0;
     const cs = cloudSessions(embedded.cloud);
-    const sessions = mergeSessions(buildSessions(embedded.records, embedded.hints), cs);
+    const sessions = mergeSessions(embedded.v === 2 ? sessionsFromCompact(embedded.data) : buildSessions(embedded.records, embedded.hints), cs);
     load(sessions, "Scanned " + (embedded.files || "?") + (embedded.files === 1 ? " file" : " files") + (cs.length ? " + " + cs.length + " cloud sessions" : "") + " at " + new Date(embedded.generatedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }), true);
     let resume = false;
     try { resume = localStorage.getItem(LIVE_KEY) === "1"; } catch {}
