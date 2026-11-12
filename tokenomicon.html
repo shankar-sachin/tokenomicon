@@ -18,6 +18,7 @@
   --text-3: #8a83a6;
   --accent: #6a3fe0;
   --accent-soft: #ece5ff;
+  --live: #d92d5b;
   --gold: #b97400;
   --bar: #7c5cf0;
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4;
@@ -28,7 +29,7 @@
     color-scheme: dark;
     --bg: #0f0b1f; --card: #191330; --card-2: #211a3d; --line: #2e2650; --grid: #261f45;
     --text: #f3efff; --text-2: #b9b0dc; --text-3: #8a81b0;
-    --accent: #a98bff; --accent-soft: #2a2152; --gold: #ffc83d; --bar: #9b7bff;
+    --accent: #a98bff; --accent-soft: #2a2152; --gold: #ffc83d; --bar: #9b7bff; --live: #ff6b8e;
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
     --shadow: none;
   }
@@ -37,7 +38,7 @@
   color-scheme: dark;
   --bg: #0f0b1f; --card: #191330; --card-2: #211a3d; --line: #2e2650; --grid: #261f45;
   --text: #f3efff; --text-2: #b9b0dc; --text-3: #8a81b0;
-  --accent: #a98bff; --accent-soft: #2a2152; --gold: #ffc83d; --bar: #9b7bff;
+  --accent: #a98bff; --accent-soft: #2a2152; --gold: #ffc83d; --bar: #9b7bff; --live: #ff6b8e;
   --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181;
   --shadow: none;
 }
@@ -64,6 +65,17 @@ header.top { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; mar
 .btn:hover { border-color: var(--accent); }
 .btn.sm { padding: 4px 9px; font-size: 12.5px; border-radius: 8px; }
 .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.live { display: inline-flex; align-items: center; gap: 7px; }
+.btn.live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); }
+.btn.live[aria-pressed="true"] { border-color: var(--live); color: var(--live); }
+.btn.live[aria-pressed="true"]::before { background: var(--live); animation: pulse 1.6s ease-out infinite; }
+.live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--live); margin-right: 6px; vertical-align: 1px; animation: pulse 1.6s ease-out infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--live) 60%, transparent); } 100% { box-shadow: 0 0 0 7px transparent; } }
+.livebar { margin: 10px 0 0; padding: 8px 12px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--live) 40%, transparent); background: color-mix(in srgb, var(--live) 8%, var(--card)); color: var(--text-2); font-size: 13px; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
+.livebar strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.kpi.hero.tick .value { animation: tick .9s ease-out; }
+@keyframes tick { 0% { color: var(--live); transform: translateY(-2px); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .btn.live[aria-pressed="true"]::before, .live-dot, .kpi.hero.tick .value { animation: none; } }
 :root[data-theme="dark"] .btn.primary { color: #140d2b; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #140d2b; } }
 .source { font-size: 12px; color: var(--text-3); }
@@ -246,6 +258,7 @@ footer { color: var(--text-3); font-size: 12px; margin-top: 8px; }
     <div class="actions">
       <span class="source" id="source"></span>
       <button class="btn" id="btnFolder" type="button">Load folder</button>
+      <button class="btn live" id="btnLive" type="button" aria-pressed="false" title="Watch costs climb as your sessions run">Live Track</button>
       <button class="btn" id="btnDemo" type="button">Demo data</button>
       <button class="btn" id="btnTheme" type="button" aria-label="Toggle light or dark theme">Theme</button>
       <input type="file" id="folderInput" webkitdirectory directory multiple hidden>
@@ -319,6 +332,7 @@ footer { color: var(--text-3); font-size: 12px; margin-top: 8px; }
             <button class="btn sm" id="csvBtn" type="button">Download CSV</button>
           </div>
           <div class="quip" id="quip"></div>
+          <div class="livebar" id="liveBar" role="status" aria-live="polite" hidden></div>
         </div>
 
         <div class="kpis" id="kpis"></div>
@@ -730,14 +744,102 @@ function load(sessions, label, keepSelection) {
   const prev = keepSelection ? loadSel().filter(id => state.byId.has(id)) : [];
   state.selected = new Set(prev.length ? prev : sessions.length ? [sessions[0].id] : []);
   saveSel();
-  const projects = [...new Set(sessions.map(s => s.project))].sort((a, b) => a.localeCompare(b));
-  document.getElementById("fProject").replaceChildren(el("option", { value: "" }, "All projects"), ...projects.map(p => el("option", { value: p }, p)));
   state.project = ""; state.limit = 150;
+  fillProjects();
   document.getElementById("empty").hidden = sessions.length > 0;
   document.getElementById("app").hidden = sessions.length === 0;
   document.getElementById("source").textContent = label;
   renderList();
   renderDetail();
+}
+
+function fillProjects() {
+  const projects = [...new Set(state.sessions.map(s => s.project))].sort((a, b) => a.localeCompare(b));
+  const sel = document.getElementById("fProject");
+  sel.replaceChildren(el("option", { value: "" }, "All projects"), ...projects.map(p => el("option", { value: p }, p)));
+  sel.value = state.project;
+}
+
+/* ---------- live track ---------- */
+// Only the page served by `tokenomicon.py --serve` can do this: it asks the server every few seconds for
+// whatever transcripts changed and rebuilds just those sessions.
+const LIVE_MS = 3000, HOT_MS = 2 * 60 * 1000, LIVE_KEY = "tokenomicon-live";
+const live = { capable: false, on: false, since: 0, timer: null, busy: false, fails: 0, base: new Map(), startedAt: 0, checkedAt: 0, lastSelTotal: null };
+const isHot = s => live.on && !s.cloud && Date.now() - s.end < HOT_MS;
+
+function setLive(on) {
+  const btn = document.getElementById("btnLive");
+  if (on && !live.capable) {
+    alert("Live Track needs the live server. Run this in the tokenomicon folder, then use the page it opens:\n\npython3 tokenomicon.py --serve");
+    return;
+  }
+  live.on = on;
+  btn.setAttribute("aria-pressed", String(on));
+  btn.textContent = on ? "Live" : "Live Track";
+  try { on ? localStorage.setItem(LIVE_KEY, "1") : localStorage.removeItem(LIVE_KEY); } catch {}
+  clearTimeout(live.timer);
+  if (on) {
+    live.base = new Map(state.sessions.map(s => [s.id, s.total]));
+    live.startedAt = Date.now(); live.fails = 0; live.lastSelTotal = null;
+    // Start watching whatever you're working in right now.
+    const hot = state.sessions.filter(s => !s.cloud).sort((a, b) => b.end - a.end)[0];
+    if (hot && Date.now() - hot.end < 30 * 60 * 1000 && !state.selected.has(hot.id)) { state.selected.add(hot.id); saveSel(); }
+    pollLive();
+  }
+  renderList(); renderDetail();
+}
+
+async function pollLive() {
+  if (!live.on) return;
+  if (!live.busy && !document.hidden) {
+    live.busy = true;
+    try {
+      const r = await fetch("live?since=" + live.since, { cache: "no-store" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const d = await r.json();
+      live.since = d.now; live.checkedAt = Date.now(); live.fails = 0;
+      if (d.sessions && d.sessions.length) applyLive(d); else renderLiveBar();
+    } catch (e) {
+      if (++live.fails >= 3) {
+        live.busy = false; setLive(false);
+        alert("Live Track lost the server. Is python3 tokenomicon.py --serve still running?");
+        return;
+      }
+    }
+    live.busy = false;
+  }
+  live.timer = setTimeout(pollLive, LIVE_MS);
+}
+
+function applyLive(d) {
+  const ids = new Set(d.sessions);
+  const fresh = buildSessions(d.records, d.hints);
+  state.sessions = mergeSessions(fresh, state.sessions.filter(s => s.cloud || !ids.has(s.id)));
+  state.byId = new Map(state.sessions.map(s => [s.id, s]));
+  fillProjects();
+  renderList();
+  if ([...state.selected].some(id => ids.has(id))) renderDetail(); else renderLiveBar();
+}
+
+function renderLiveBar() {
+  const bar = document.getElementById("liveBar");
+  bar.hidden = !live.on;
+  if (!live.on) return;
+  const sel = selection();
+  const total = sel.reduce((a, s) => a + s.total, 0);
+  const delta = sel.reduce((a, s) => a + s.total - (live.base.get(s.id) || 0), 0);
+  const running = sel.filter(isHot).length;
+  const t = d => d ? new Date(d).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", second: "2-digit" }) : "...";
+  bar.replaceChildren(
+    el("span", null, el("span", { class: "live-dot" }), el("strong", null, "Live")),
+    el("span", null, "+", el("strong", null, delta <= 0 ? "$0.00" : delta < 0.01 ? fmtUSD4(delta) : fmtUSD(delta)), " since you hit Live Track at " + t(live.startedAt)),
+    el("span", null, running ? running + (running === 1 ? " session" : " sessions") + " running" : "Nothing running in this selection right now"),
+    el("span", null, "checked " + t(live.checkedAt)));
+  if (live.lastSelTotal != null && Math.abs(total - live.lastSelTotal) > 1e-9) {
+    const hero = document.querySelector("#kpis .kpi.hero");
+    if (hero) { hero.classList.remove("tick"); void hero.offsetWidth; hero.classList.add("tick"); }
+  }
+  live.lastSelTotal = total;
 }
 
 function visible() {
@@ -760,7 +862,7 @@ function renderList() {
     const meta = [s.project, fmtDateTime(s.start), s.cloud ? "cloud" : fmtDur(s.active),models[0] === s.primary && models.length === 1 ? s.primary : s.primary + " +" + (models.length - 1)].join(" · ");
     const label = el("label", { class: "item" + (on ? " on" : "") },
       cb,
-      el("div", { style: "min-width:0" }, el("div", { class: "p", title: s.prompt && s.prompt !== s.title ? "First prompt: " + s.prompt : s.title }, s.title), el("div", { class: "m", title: s.cloud ? "Ran in Claude's cloud (" + s.origin + ")" + (s.cwd ? ": " + s.cwd : "") + ". Totals only, no per-call detail." : s.cwd || s.project }, meta)),
+      el("div", { style: "min-width:0" }, el("div", { class: "p", title: s.prompt && s.prompt !== s.title ? "First prompt: " + s.prompt : s.title }, isHot(s) ? el("span", { class: "live-dot", title: "Running right now" }) : null, s.title), el("div", { class: "m", title: s.cloud ? "Ran in Claude's cloud (" + s.origin + ")" + (s.cwd ? ": " + s.cwd : "") + ". Totals only, no per-call detail." : s.cwd || s.project }, meta)),
       el("div", { class: "c num" }, fmtUSD(s.total), el("small", null, fmtTok(s.tok.inp + s.tok.cw5 + s.tok.cw1 + s.tok.cr + s.tok.out) + " tok")));
     cb.addEventListener("change", () => {
       if (cb.checked) state.selected.add(s.id); else state.selected.delete(s.id);
@@ -821,6 +923,7 @@ function renderDetail() {
     ? [one.project, fmtDateTime(one.start) + " to " + (one.cloud ? fmtDateTime(one.end) : fmtTime(one.end)), one.cloud ? "ran in the cloud (" + one.origin + ")" : "session " + one.id.slice(0, 8)].join(" · ")
     : [projects.length <= 3 ? projects.join(", ") : projects.length + " projects", fmtDateTime(sel[0].start) + " to " + fmtDateTime(sel[sel.length - 1].end)].join(" · ");
   document.getElementById("quip").innerHTML = quipFor(total);
+  queueMicrotask(renderLiveBar);
 
   // KPI tiles
   const cw = tok.cw5 + tok.cw1;
@@ -1070,6 +1173,7 @@ function setTheme(t) {
   $("folderInput").onchange = e => loadFiles(e.target.files);
   $("filesInput").onchange = e => loadFiles(e.target.files);
   $("btnDemo").onclick = loadDemo;
+  $("btnLive").onclick = () => setLive(!live.on);
   $("btnDemo2").onclick = loadDemo;
   $("btnTheme").onclick = () => {
     const cur = document.documentElement.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
@@ -1090,9 +1194,14 @@ function setTheme(t) {
   setupDrop();
   const embedded = window.TOKENOMICON_DATA;
   if (embedded && embedded.records) {
+    live.capable = !!embedded.live && /^https?:$/.test(location.protocol);
+    live.since = embedded.generatedAt || 0;
     const cs = cloudSessions(embedded.cloud);
     const sessions = mergeSessions(buildSessions(embedded.records, embedded.hints), cs);
     load(sessions, "Scanned " + (embedded.files || "?") + (embedded.files === 1 ? " file" : " files") + (cs.length ? " + " + cs.length + " cloud sessions" : "") + " at " + new Date(embedded.generatedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }), true);
+    let resume = false;
+    try { resume = localStorage.getItem(LIVE_KEY) === "1"; } catch {}
+    if (resume && live.capable) setLive(true);
   } else if (/[?&]demo\b/.test(location.search)) {
     loadDemo();
   } else {
