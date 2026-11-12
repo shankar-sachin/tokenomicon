@@ -15,6 +15,8 @@ python3 tokenomicon.py --serve
 
 That scans every transcript and opens http://localhost:8787. Refresh the page to rescan, and your selection sticks. Keep `tokenomicon.py` and `tokenomicon.html` in the same folder.
 
+Hit **Live Track** on that page and it keeps watching: every 3 seconds it asks the server what changed, so the cost, tokens and cache numbers for your selection climb while Claude works. Sessions running right now get a pulsing dot, the session you're working in gets ticked for you, and a bar tracks how much you've spent since you turned it on. It stays on across refreshes until you turn it off. It only re-reads transcripts that changed, so leaving it on is cheap. It needs `--serve`, so it does nothing in a saved report file.
+
 Rather have a file? `python3 tokenomicon.py` writes `tokenomicon-report.html` with everything baked in and opens it.
 
 Don't want to run a script? Open `tokenomicon.html` and hit **Load folder** (pick `~/.claude/projects`; on a Mac, `Cmd+Shift+.` shows hidden folders), drag the folder onto the page, or click **Demo data**.

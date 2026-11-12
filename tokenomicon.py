@@ -18,6 +18,7 @@ import os
 import re
 import socket
 import sys
+import threading
 import time
 import webbrowser
 from pathlib import Path
@@ -117,44 +118,96 @@ def slim(obj):
     return out
 
 
-def collect(dirs):
-    records, hints, files, bad = [], [], 0, 0
-    uuid_session = {}  # message uuid -> sessionId, to place "summary" titles
-    summaries = []
-    for root in dirs:
-        for path in sorted(root.rglob("*.jsonl")):
-            files += 1
-            rel = path.relative_to(root)
-            hint = rel.parts[0].lstrip("-") if len(rel.parts) > 1 else None
-            try:
-                with path.open("r", encoding="utf-8", errors="replace") as fh:
-                    for line in fh:
-                        line = line.strip()
-                        if not line:
-                            continue
-                        try:
-                            obj = json.loads(line)
-                            rec = slim(obj)
-                        except (json.JSONDecodeError, AttributeError, TypeError):
-                            bad += 1
-                            continue
-                        if obj.get("uuid") and obj.get("sessionId"):
-                            uuid_session[obj["uuid"]] = obj["sessionId"]
-                        if not rec:
-                            continue
-                        if rec["type"] == "summary":
-                            summaries.append(rec)
-                            continue
-                        records.append(rec)
-                        hints.append(hint)
-            except OSError as e:
-                print(f"  skipping {path}: {e}", file=sys.stderr)
-    for rec in summaries:
-        sid = uuid_session.get(rec["leafUuid"])
-        if sid:
-            records.append({"type": "summary", "sessionId": sid, "summary": rec["summary"]})
-            hints.append(None)
-    return records, hints, files, bad
+class Collector:
+    """Remembers every transcript it has read, keyed by path, so a rescan only re-reads files that changed.
+    That's what makes Live Track cheap: polling every few seconds re-parses one or two growing files, not 35 MB."""
+
+    def __init__(self, dirs):
+        self.dirs = dirs
+        self.files = {}  # path -> {"sig", "recs", "hints", "uuids", "summaries", "sids", "bad"}
+        self.lock = threading.Lock()
+
+    @staticmethod
+    def _parse(path, hint, sig):
+        recs, uuids, summaries, sids, bad = [], {}, [], set(), 0
+        try:
+            with path.open("r", encoding="utf-8", errors="replace") as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        obj = json.loads(line)
+                        rec = slim(obj)
+                    except (json.JSONDecodeError, AttributeError, TypeError):
+                        bad += 1  # includes a half-written last line while Claude is mid-reply
+                        continue
+                    if obj.get("uuid") and obj.get("sessionId"):
+                        uuids[obj["uuid"]] = obj["sessionId"]
+                    if not rec:
+                        continue
+                    if rec["type"] == "summary":
+                        summaries.append(rec)
+                        continue
+                    recs.append(rec)
+                    sids.add(rec["sessionId"])
+        except OSError as e:
+            print(f"  skipping {path}: {e}", file=sys.stderr)
+        return {"sig": sig, "recs": recs, "hint": hint, "uuids": uuids, "summaries": summaries, "sids": sids, "bad": bad}
+
+    def refresh(self, now=None):
+        """Re-read new or changed files, stamping them with `now` (ms). Returns the session ids whose data changed."""
+        changed, seen = set(), set()
+        now = now if now is not None else int(time.time() * 1000)
+        for root in self.dirs:
+            for path in sorted(root.rglob("*.jsonl")):
+                try:
+                    st = path.stat()
+                except OSError:
+                    continue
+                seen.add(path)
+                sig = (st.st_mtime_ns, st.st_size)
+                old = self.files.get(path)
+                if old and old["sig"] == sig:
+                    continue
+                rel = path.relative_to(root)
+                hint = rel.parts[0].lstrip("-") if len(rel.parts) > 1 else None
+                new = self._parse(path, hint, sig)
+                new["at"] = now
+                self.files[path] = new
+                changed |= new["sids"] | (old["sids"] if old else set())
+        for path in [p for p in self.files if p not in seen]:
+            changed |= self.files.pop(path)["sids"]
+        return changed
+
+    def changed_since(self, since):
+        """Session ids from files re-read at or after `since` (ms). Each open page tracks its own `since`."""
+        out = set()
+        for f in self.files.values():
+            if f["at"] >= since:
+                out |= f["sids"]
+        return out
+
+    def assemble(self, only=None):
+        """Records (and project hints) for every session, or just the ids in `only`."""
+        records, hints, bad = [], [], 0
+        uuid_session = {}
+        for f in self.files.values():
+            uuid_session.update(f["uuids"])
+            bad += f["bad"]
+            if only is not None and not (f["sids"] & only):
+                continue
+            for rec in f["recs"]:
+                if only is None or rec["sessionId"] in only:
+                    records.append(rec)
+                    hints.append(f["hint"])
+        for f in self.files.values():
+            for rec in f["summaries"]:
+                sid = uuid_session.get(rec["leafUuid"])
+                if sid and (only is None or sid in only):
+                    records.append({"type": "summary", "sessionId": sid, "summary": rec["summary"]})
+                    hints.append(None)
+        return records, hints, len(self.files), bad
 
 
 def load_cloud(paths, quiet=False):
@@ -179,20 +232,24 @@ def load_cloud(paths, quiet=False):
     return out
 
 
-def build_report(dirs, cloud_paths=(), quiet=False):
+def build_report(collector, cloud_paths=(), quiet=False, live=False):
     """Scan the transcripts and return the dashboard HTML with the data baked in."""
     t0 = time.time()
-    records, hints, files, bad = collect(dirs)
+    with collector.lock:
+        generated = int(time.time() * 1000)
+        collector.refresh(generated)
+        records, hints, files, bad = collector.assemble()
     if not quiet:
         sessions = len({r["sessionId"] for r in records})
         print(f"Read {files} files, {len(records):,} records, {sessions:,} sessions in {time.time() - t0:.1f}s"
               + (f" ({bad} junk lines skipped)" if bad else ""))
     payload = {
-        "generatedAt": int(time.time() * 1000),
+        "generatedAt": generated + 1,  # also where Live Track starts counting from
         "files": files,
         "records": records,
         "hints": hints,
         "cloud": load_cloud(cloud_paths, quiet),
+        "live": live,  # only the --serve page can poll for updates
     }
     blob = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
     html = TEMPLATE.read_text(encoding="utf-8")
@@ -212,18 +269,38 @@ def lan_ip():
         s.close()
 
 
-def serve(dirs, cloud_paths, host, port, open_browser):
+def serve(collector, cloud_paths, host, port, open_browser):
     """Live mode: every page load rescans your logs, so a refresh is always current."""
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from urllib.parse import parse_qs, urlsplit
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
-            if self.path.split("?")[0] not in ("/", "/index.html"):
+            route = self.path.split("?")[0]
+            if route == "/live":
+                # Live Track polls this: only the sessions whose transcripts changed since the last look.
+                try:
+                    since = int(parse_qs(urlsplit(self.path).query).get("since", ["0"])[0])
+                except ValueError:
+                    since = 0
+                with collector.lock:
+                    now = int(time.time() * 1000)
+                    collector.refresh(now)
+                    sids = collector.changed_since(since)
+                    records, hints, _, _ = collector.assemble(sids) if sids else ([], [], 0, 0)
+                payload = {"now": now + 1, "sessions": sorted(sids), "records": records, "hints": hints}
+                self._send(json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8"),
+                           "application/json")
+                return
+            if route not in ("/", "/index.html"):
                 self.send_error(404)
                 return
-            body = build_report(dirs, cloud_paths(), quiet=True).encode("utf-8")
+            self._send(build_report(collector, cloud_paths(), quiet=True, live=True).encode("utf-8"),
+                       "text/html; charset=utf-8")
+
+        def _send(self, body, ctype):
             self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Type", ctype)
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
@@ -279,12 +356,13 @@ def main():
         return sorted(HERE.glob(CLOUD_GLOB))
 
     if args.serve:
-        build_report(dirs, cloud_paths())  # fail fast and show counts before going live
-        serve(dirs, cloud_paths, args.host, args.port, not args.no_open)
+        collector = Collector(dirs)
+        build_report(collector, cloud_paths())  # fail fast and show counts before going live
+        serve(collector, cloud_paths, args.host, args.port, not args.no_open)
         return
 
     out = Path(args.out).expanduser()
-    out.write_text(build_report(dirs, cloud_paths()), encoding="utf-8")
+    out.write_text(build_report(Collector(dirs), cloud_paths()), encoding="utf-8")
     print(f"Report: {out}")
     if not args.no_open:
         webbrowser.open(out.resolve().as_uri())
